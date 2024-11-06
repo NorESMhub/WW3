@@ -71,7 +71,6 @@ contains
     integer            , intent(out)   :: rc
 
     ! local variables
-    integer           :: nmode0
     integer           :: pio_numiotasks
     integer           :: pio_stride
     integer           :: pio_rearranger
@@ -90,11 +89,7 @@ contains
 #ifdef CESMCOUPLED
     wav_pio_subsystem => shr_pio_getiosys(inst_name)
     pio_iotype =  shr_pio_getiotype(inst_name)
-    if ((pio_iotype==PIO_IOTYPE_NETCDF).or.(pio_iotype==PIO_IOTYPE_PNETCDF)) then
-      nmode0 = shr_pio_getioformat(inst_name)
-    else
-      nmode0 = 0
-    endif
+    pio_ioformat = shr_pio_getioformat(inst_name)
     call pio_seterrorhandling(wav_pio_subsystem, PIO_RETURN_ERROR)
 #else
     my_task = iaproc - 1

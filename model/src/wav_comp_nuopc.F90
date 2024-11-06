@@ -719,6 +719,7 @@ contains
       ! netcdf is used for CESM history and restart
       use_historync = .true.
       use_restartnc = .true.
+      write(6,*)'DEBUG: use_historync = ',use_historync
     else
       call NUOPC_CompAttributeGet(gcomp, name='use_restartnc', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -989,6 +990,7 @@ contains
     !--------------------------------------------------------------------
 
     if (use_historync) then
+       write(6,*)'DEBUG: calling wav_history_init'
       call wav_history_init(stdout)
     end if
 
@@ -1628,6 +1630,20 @@ contains
     call mpi_bcast(dtmin, 1, MPI_INTEGER, 0, mpi_comm, ierr)
     if (ierr /= MPI_SUCCESS) then
       call ESMF_LogWrite(trim(subname)//' error in mpi broadcast for dtmax ',&
+           ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+      rc = ESMF_FAILURE
+      return
+    end if
+    call mpi_bcast(history_option, len(history_option), MPI_CHARACTER, 0, mpi_comm, ierr)
+    if (ierr /= MPI_SUCCESS) then
+      call ESMF_LogWrite(trim(subname)//' error in mpi broadcast for history_option ',&
+           ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
+      rc = ESMF_FAILURE
+      return
+    end if
+    call mpi_bcast(history_n, 1, MPI_INTEGER, 0, mpi_comm, ierr)
+    if (ierr /= MPI_SUCCESS) then
+      call ESMF_LogWrite(trim(subname)//' error in mpi broadcast for history_n ',&
            ESMF_LOGMSG_ERROR, line=__LINE__, file=u_FILE_u)
       rc = ESMF_FAILURE
       return
