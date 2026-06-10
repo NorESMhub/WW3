@@ -168,7 +168,6 @@ contains
     character(len=256)  :: tmpline, test
     character(len=1024) :: fldrst=''
     character(len=80)   :: linein
-    character(len=30)   :: ofile ! w3_cou only
     character(len=8)    :: words(7)=''
     character(len=256)  :: filename
     logical             :: flflg, flhom, tflagi, prtfrm, flgnml, flh(-7:10)

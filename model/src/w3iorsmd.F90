@@ -539,6 +539,8 @@ CONTAINS
       ELSE
         FNMPRE_LOCAL = FNMRST
       END IF
+
+
       I      = LEN_TRIM(FILEXT)
       J      = LEN_TRIM(FNMPRE_LOCAL)
       !
@@ -546,7 +548,7 @@ CONTAINS
       ITMP=0
       IF ( PRESENT(FLRSTRT) ) THEN
         IF (FLRSTRT) THEN
-          WRITE(TIMETAG,"(i8.8,'.'i6.6)")TIME(1),TIME(2)
+          WRITE(TIMETAG, '(i8.8, ".", i6.6)') TIME(1), TIME(2)
           FNAME=TIMETAG//'.restart.'//FILEXT(:I)
           ITMP=1
         END IF
@@ -566,7 +568,6 @@ CONTAINS
       WRITE (NDST,9001) trim(FNAME), LRECL
 #endif
       !
-
       IF(NDST.EQ.NDSR)THEN
         IF ( IAPROC .EQ. NAPERR )                                    &
              WRITE(NDSE,'(A,I8)')'UNIT NUMBERS OF RESTART FILE AND '&

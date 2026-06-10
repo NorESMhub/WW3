@@ -115,8 +115,8 @@ MODULE W3GRIDMD
   !/    19-Jul-2021 : Momentum and air density support    ( version 7.14 )
   !/    28-Feb-2023 : GQM as an alternative for NL1       ( version 7.15 )
   !/    11-Jan-2024 : New namelist parameters for IC4     ( version 7.15 )
-  !/    04-Jul-2025 : Remove labelled statements          ( version X.XX )
   !/    03-May-2024 : New CAPCHNK parameters for SIN4     ( version 7.15 )
+  !/    04-Jul-2025 : Remove labelled statements          ( version X.XX )
   !/
   !/    Copyright 2009-2013 National Weather Service (NWS),
   !/       National Oceanic and Atmospheric Administration.  All rights
@@ -1748,7 +1748,7 @@ CONTAINS
     !  initializes TAUWX/Y to zero in W3SRCE
     VISCSTRESS =0
     CAPCHA   = 0.     ! =1 indicates capping of drag is active
-    CHAMIN   = 0.0001 ! 
+    CHAMIN   = 0.0001 !
     CHA0     = ALPHA0 ! initial value for charnock
     UCAP     = 30.    ! U10 threshold from which drag capping is applied
     SIGMAUCAP = 10.   ! Width for reduction of drag beyond UCAP

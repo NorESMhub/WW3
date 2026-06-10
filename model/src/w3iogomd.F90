@@ -1310,12 +1310,16 @@ CONTAINS
          HCMAXE, HMAXE, HCMAXD, HMAXD, QP, PQP,      &
          PTHP0, PPE, PGW, PSW, PTM1, PT1, PT2, PEP,  &
          WBT, QKK
-    USE W3ODATMD, ONLY: NDST, UNDEF, IAPROC, NAPROC, NAPFLD,        &
-         ICPRT, DTPRT, WSCUT, NOSWLL, FLOGRD, FLOGR2,&
-         NOGRP, NGRPP
-    USE W3ADATMD, ONLY: NSEALM
+      ! USSHX, USSHY : surface layer (SL) averaged SD
+      ! HSL          : surface layer depth (1/5 of the mixed layer depth
+      !                from the coupler)
     USE W3ADATMD, ONLY: USSHX, USSHY
     USE W3IDATMD, ONLY: HSL
+    USE W3ODATMD, ONLY: UNDEF, ICPRT, DTPRT, WSCUT,  &
+         NOSWLL, FLOGRD, FLOGR2, NOGRP, NGRPP
+#ifdef W3_T
+    USE W3ODATMD, ONLY: NDST
+#endif
 #ifdef W3_S
     USE W3SERVMD, ONLY: STRACE
 #endif
@@ -1374,7 +1378,6 @@ CONTAINS
     LOGICAL                 :: FLOLOC(NOGRP,NGRPP)
     ! SWW: angle between wind and waves
     ! LHSL: local surface layer depth
-    REAL                    :: SWW
     REAL                    :: LHSL
     ! tmp variable for surface layer averaged Stokes drift
     REAL                    :: USSCOH

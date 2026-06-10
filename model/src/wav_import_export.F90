@@ -94,8 +94,7 @@ contains
     integer          , intent(out) :: rc
 
     ! local variables
-    integer          :: n, num
-    character(len=2) :: fvalue
+    integer          :: n
     character(len=*), parameter :: subname='(wav_import_export:advertise_fields)'
     !-------------------------------------------------------------------------------
 

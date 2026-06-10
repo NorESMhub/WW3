@@ -563,6 +563,8 @@ CONTAINS
     USE W3ODATMD,         ONLY : FNMRST
     USE W3GDATMD,         ONLY : MAPST2
 #endif
+    use w3odatmd        , only : use_historync, use_restartnc
+    use w3odatmd        , only : logfile_is_assigned, verboselog
 #if defined(W3_T) || defined(W3_REFRX)
     USE W3GDATMD,  ONLY : NSEA
 #endif
@@ -580,7 +582,7 @@ CONTAINS
     !/ ------------------------------------------------------------------- /
     !/ Parameter list
     !/
-    INTEGER, INTENT(IN)           :: IMOD, TEND(2),ODAT(35)
+    INTEGER, INTENT(IN)           :: IMOD, TEND(2),ODAT(40)
     LOGICAL, INTENT(IN), OPTIONAL :: STAMP, NO_OUT
 #ifdef W3_OASIS
     type(MPI_COMM), INTENT(IN), OPTIONAL :: ID_LCOMM
@@ -590,6 +592,9 @@ CONTAINS
     !/ ------------------------------------------------------------------- /
     !/ Local parameters :
     !/
+#ifdef W3_T
+    INTEGER                 :: ILEN
+#endif
 #ifdef W3_S
     INTEGER, SAVE           :: IENT = 0
 #endif
@@ -643,9 +648,10 @@ CONTAINS
     !
     REAL, ALLOCATABLE       :: TAUWX(:), TAUWY(:)
     !
-    LOGICAL                 :: FLACT, FLZERO, FLFRST, FLMAP, TSTAMP,   &
-                               SKIP_O, FLAG_O, FLDDIR, READBC,         &
-                               FLOUTG, FLPFLD, FLPART, LOCAL, FLOUTG2
+    LOGICAL                 :: FLACT, FLZERO, FLFRST, FLMAP, TSTAMP,&
+         SKIP_O, FLAG_O, FLDDIR, READBC,      &
+         FLOUTG = .false., FLPFLD,            &
+         FLPART, LOCAL, FLOUTG2 = .false.
     !
 #ifdef W3_MPI
     LOGICAL                 :: FLGMPI(0:8)
@@ -763,7 +769,9 @@ CONTAINS
       FLPFLD = FLPFLD .OR. FLOGRD(4,J) .OR. FLOGR2(4,J)
     END DO
     !
-    IF ( IAPROC .EQ. NAPLOG ) BACKSPACE ( NDSO )
+    if (.not. logfile_is_assigned) then
+      IF ( IAPROC .EQ. NAPLOG ) BACKSPACE ( NDSO )
+    end if
     !
     IF ( FLCOLD ) THEN
       DTDYN = 0.
@@ -801,7 +809,8 @@ CONTAINS
     ! 0.d Test output
     !
 #ifdef W3_T
-    WRITE (NDST,9000) IMOD, trim(FILEXT), TEND
+    ILEN   = LEN_TRIM(FILEXT)
+    WRITE (NDST,9000) IMOD, FILEXT(:ILEN), TEND
 #endif
     !
     ! 1.  Check the consistency of the input ----------------------------- /
@@ -1663,7 +1672,7 @@ CONTAINS
               WRITE(740+IAPROC,*) '     SHAVETOT=', SHAVETOT(JSEA)
               FLUSH(740+IAPROC)
 #endif
-            ENDIF 
+            ENDIF
           END DO ! JSEA
         END IF ! PDLIB
 #endif
@@ -2410,7 +2419,7 @@ CONTAINS
           DTG    = DTTST / REAL(NT-IT)
         END IF
         !
-        IF ( FLACT .AND. IT.NE.NT .AND. IAPROC.EQ.NAPLOG ) THEN
+        IF ( FLACT .AND. IT.NE.NT .AND. IAPROC.EQ.NAPLOG .and. verboselog) THEN
           CALL STME21 ( TIME , IDTIME )
           IF ( IDLAST .NE. TIME(1) ) THEN
             WRITE (NDSO,900) ITIME, IPASS, IDTIME(01:19), IDACT, OUTID
@@ -2430,7 +2439,7 @@ CONTAINS
 #endif
         !
         !
-      END DO
+      END DO ! DO IT = IT0, NT
 
       IF ( .NOT. FLZERO ) THEN
 #ifdef W3_TIMINGS
@@ -2580,33 +2589,35 @@ CONTAINS
 #endif
         !
 #ifdef W3_MPI
-        IF ( FLOUT(4) .AND. NRQRS.NE.0 ) THEN
-          IF ( DSEC21(TIME,TONEXT(:,4)).EQ.0. ) THEN
-            CALL MPI_STARTALL ( NRQRS, IRQRS , IERR_MPI )
-            FLGMPI(4) = .TRUE.
-            NRQMAX    = MAX ( NRQMAX , NRQRS )
+        if (.not. use_restartnc) then
+          IF ( FLOUT(4) .AND. NRQRS.NE.0 ) THEN
+            IF ( DSEC21(TIME,TONEXT(:,4)).EQ.0. ) THEN
+              CALL MPI_STARTALL ( NRQRS, IRQRS , IERR_MPI )
+              FLGMPI(4) = .TRUE.
+              NRQMAX    = MAX ( NRQMAX , NRQRS )
 #endif
 #ifdef W3_MPIT
-            WRITE (NDST,9043) '4 ', NRQRS, NRQMAX, NAPRST
+              WRITE (NDST,9043) '4 ', NRQRS, NRQMAX, NAPRST
 #endif
 #ifdef W3_MPI
+            END IF
           END IF
-        END IF
 #endif
-        !
+          !
 #ifdef W3_MPI
-        IF ( FLOUT(8) .AND. NRQRS.NE.0 ) THEN
-          IF ( DSEC21(TIME,TONEXT(:,8)).EQ.0. ) THEN
-            CALL MPI_STARTALL ( NRQRS, IRQRS , IERR_MPI )
-            FLGMPI(8) = .TRUE.
-            NRQMAX    = MAX ( NRQMAX , NRQRS )
+          IF ( FLOUT(8) .AND. NRQRS.NE.0 ) THEN
+            IF ( DSEC21(TIME,TONEXT(:,8)).EQ.0. ) THEN
+              CALL MPI_STARTALL ( NRQRS, IRQRS , IERR_MPI )
+              FLGMPI(8) = .TRUE.
+              NRQMAX    = MAX ( NRQMAX , NRQRS )
 #endif
 #ifdef W3_MPIT
-            WRITE (NDST,9043) '8 ', NRQRS, NRQMAX, NAPRST
+              WRITE (NDST,9043) '8 ', NRQRS, NRQMAX, NAPRST
 #endif
 #ifdef W3_MPI
+            END IF
           END IF
-        END IF
+        end if ! if (.not. use_restartnc)
 #endif
         !
 #ifdef W3_MPI
@@ -2644,7 +2655,6 @@ CONTAINS
         call print_memcheck(memunit, 'memcheck_____:'//' WW3_WAVE AFTER TIME LOOP 2')
         !
         ! 4.c Reset next output time
-
         !
         TOFRST(1) = -1
         TOFRST(2) =  0
@@ -2821,7 +2831,7 @@ CONTAINS
 
         ! If there is a second stream of restart files then J=8 and FLOUT(8)=.TRUE.
         J=8
-        IF ( FLOUT(J) ) THEN
+        IF ( FLOUT(J) .and. .not. use_restartnc) THEN
           !
           ! 4.d Perform output
           !
@@ -2889,7 +2899,7 @@ CONTAINS
       !
       ! 5.  Update log file ------------------------------------------------ /
       !
-      IF ( IAPROC.EQ.NAPLOG ) THEN
+      IF ( IAPROC.EQ.NAPLOG .and. verboselog) THEN
         !
         CALL STME21 ( TIME , IDTIME )
         IF ( FLCUR ) THEN
@@ -2942,7 +2952,7 @@ CONTAINS
       WRITE (SCREEN,951) STTIME
     END IF
 
-    IF ( IAPROC .EQ. NAPLOG ) WRITE (NDSO,902)
+    IF ( IAPROC .EQ. NAPLOG .and. verboselog) WRITE (NDSO,902)
     !
     DEALLOCATE(FIELD)
     DEALLOCATE(TAUWX, TAUWY)

@@ -48,6 +48,8 @@ module wav_shr_mod
   private :: field_getfldptr   !< @private obtain a pointer to a field
   public  :: diagnose_mesh     !< @public write out info about mesh
   public  :: write_meshdecomp  !< @public write the mesh decomposition to a file
+  public  :: wav_loginit       !< @public write the verbose WW3 log header
+
   interface state_getfldptr
     module procedure state_getfldptr_1d
     module procedure state_getfldptr_2d
@@ -363,7 +365,7 @@ contains
     integer,          intent(inout)  :: rc
 
     ! local variables
-    integer           :: mytask, ierr, len
+    integer           :: mytask
     type(ESMF_VM)     :: vm
     type(ESMF_Field)  :: field
     real(r8), pointer :: farrayptr(:,:)
@@ -483,7 +485,7 @@ contains
     integer          , intent(out)   :: rc
 
     ! local variables
-    integer                             :: i,j,n
+    integer                             :: n
     type(ESMF_Field)                    :: lfield
     integer                             :: fieldCount
     integer                             :: lrank
@@ -664,7 +666,7 @@ contains
     integer         , intent(out) :: rc
 
     ! local variables
-    integer                         :: i,j,n
+    integer                         :: n
     type(ESMf_Field)                :: lfield
     integer                         :: fieldCount, lrank
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
@@ -885,7 +887,7 @@ contains
     integer                     , intent(inout) :: rc        ! Return code
 
     ! local variables
-    type(ESMF_Calendar)     :: cal                ! calendar
+    type(ESMF_Calendar)     :: cal              ! calendar
     integer                 :: lymd             ! local ymd
     integer                 :: ltod             ! local tod
     integer                 :: cyy,cmm,cdd,csec ! time info
@@ -895,7 +897,6 @@ contains
     type(ESMF_Time)         :: NextAlarm        ! Next restart alarm time
     type(ESMF_TimeInterval) :: AlarmInterval    ! Alarm interval
     type(ESMF_TimeInterval) :: TimeStepInterval ! Timestep interval
-    integer                 :: sec
 
     character(len=*), parameter :: subname = ' (wav_shr_mod:set_alarmInit) '
     !-------------------------------------------------------------------------------
@@ -1367,6 +1368,28 @@ contains
     date = abs(year)*10000_I8 + month*100 + day  ! coded calendar date
     if (year < 0) date = -date
   end subroutine ymd2date_long
+
+  !===============================================================================
+  !> Write the verbose WW3 log header
+  !!
+  !! @param[in] stdout      the logfile unit on the root task
+  !!
+  !> @author Denise.Worthen@noaa.gov
+  !> @date 09-14-2024
+
+  subroutine wav_loginit(stdout)
+
+    integer, intent(in) :: stdout
+
+    write(stdout,984)
+984 format (//                                                     &
+         37x,'|         input         |      output      |'/       &
+         37x,'|-----------------------|------------------|'/       &
+          2x,'   step | pass |    date      time   | b w l c t r i i1 i5 d | g p t r b f c r2 |'/ &
+          2x,'--------|------|---------------------|-----------------------|------------------|'/ &
+          2x,'--------+------+---------------------+---------------------------+--------------+')
+
+  end subroutine wav_loginit
 
   !===============================================================================
   !> Return a logical true if ESMF_LogFoundError detects an error

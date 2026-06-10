@@ -1186,7 +1186,7 @@ CONTAINS
       WRITE (NDSM)                                                &
         LMPENABLED, SDTAIL, HSLMODE
       ELSE
-        READ (NDSM,IOSTAT=IERR)                                      &
+        READ (NDSM,IOSTAT=IERR)                                   &
              LMPENABLED, SDTAIL, HSLMODE
         IF (IERR.NE.0) CALL EXTIOF(NDSE,IERR,'W3IOGR','mod_def.'//FILEXT(:IEXT),51)
     END IF
