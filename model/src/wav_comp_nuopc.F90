@@ -823,7 +823,11 @@ contains
          elementDistgrid=Distgrid,rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (dbug_flag > 5) then
-      call diagnose_mesh(EMesh, size(gindex), 'EMesh', rc=rc)
+      if (unstr_mesh) then
+        call diagnose_mesh(EMesh, nseal_cpl, 'EMesh', rc=rc)
+      else
+        call diagnose_mesh(EMesh, size(gindex), 'EMesh', rc=rc)
+      end if
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
