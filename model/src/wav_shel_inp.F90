@@ -107,6 +107,7 @@ contains
   subroutine read_shel_config(mpi_comm, mds, time0_overwrite, timen_overwrite)
 
     use wav_shr_flags
+    use wav_shr_mod    , only : inst_suffix
     use mpi_f08        , only : MPI_COMM_T => MPI_COMM
     use w3nmlshelmd    , only : nml_domain_t, nml_input_t, nml_output_type_t
     use w3nmlshelmd    , only : nml_output_date_t, nml_output_path_t, nml_homog_count_t, nml_homog_input_t
@@ -261,7 +262,7 @@ contains
     ! Read nml file if available
     !--------------------
 
-    filename = trim(fnmpre)//"wav_in"
+    filename = trim(fnmpre)//"wav_in"//trim(inst_suffix)
     inquire(file=trim(filename), exist=flgnml)
 
     if (flgnml) then
@@ -769,6 +770,12 @@ contains
 
       call print_logmsg(740+IAPROC, ' fnmpre'//trim(fnmpre), w3_debuginit_flag)
       open (newunit=ndsi,file=trim(fnmpre)//'ww3_shel.inp',status='old',iostat=ierr)
+      if ( ierr /= 0 ) then
+        if ( iaproc .eq. naperr ) write (ndse,'(a)') 'read_shel_config: cannot open '// &
+             trim(fnmpre)//'ww3_shel.inp (and '//trim(fnmpre)//'wav_in'//trim(inst_suffix)// &
+             ' was not found)'
+        call extcde ( 60 )
+      end if
       rewind (ndsi)
 
       read (ndsi,'(a)') comstr
