@@ -583,7 +583,6 @@ MODULE W3ODATMD
                                                        !! if true => write restart
   logical            :: use_historync = .false.        !< @public logical flag to use netCDF for gridded
                                                        !! field output
-  logical            :: user_netcdf_grdout = .false.   !< @public logical flag to use CESM netCDF gridded output (w3iogoncd)
   logical            :: use_restartnc = .false.        !< @public logical flag to read and write netCDF restarts
   logical            :: restart_from_binary = .false.  !< @public logical flag for restarting from binary restart
                                                        ! when use_restartnc is true

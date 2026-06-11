@@ -45,7 +45,7 @@ module wav_comp_nuopc
   use wav_shr_mod           , only : merge_import, dbug_flag
   use w3odatmd              , only : nds, iaproc, napout
   use w3odatmd              , only : runtype, use_user_histname, user_histfname, use_user_restname, user_restfname
-  use w3odatmd              , only : user_netcdf_grdout
+  use w3odatmd              , only : use_historync
   use w3odatmd              , only : time_origin, calendar_name, elapsed_secs
   use wav_shr_mod           , only : casename, multigrid, inst_suffix, inst_index, unstr_mesh
   use wav_wrapper_mod       , only : ufs_settimer, ufs_logtimer, ufs_file_setlogunit, wtime
@@ -428,7 +428,7 @@ contains
     use wmunitmd     , only : wmuget, wmuset
 #endif
     use wav_shel_inp , only : set_shel_io
-    use wav_grdout   , only : wavinit_grdout
+    use wav_history_mod , only : wav_history_init
     use wav_shr_mod  , only : diagnose_mesh, write_meshdecomp
 #ifdef W3_PDLIB
     use yowNodepool  , only : ng
@@ -718,11 +718,13 @@ contains
     end if
 
     !--------------------------------------------------------------------
-    ! Intialize the list of requested output variables for netCDF output
+    ! Intialize the list of requested output variables for netCDF output.
+    ! This needs to occur after mod_def has been read in w3init since
+    ! some variables are available only if they are defined in the mod_def
     !--------------------------------------------------------------------
 
-    if (user_netcdf_grdout) then
-      call wavinit_grdout
+    if (use_historync) then
+      call wav_history_init(stdout)
     end if
 
     !--------------------------------------------------------------------
@@ -1440,7 +1442,8 @@ contains
     use w3initmd     , only : w3init
     use w3gdatmd     , only : dtcfl, dtcfli, dtmax, dtmin
     use w3idatmd     , only : inflags1, inflags2
-    use w3odatmd     , only : initfile
+    use w3odatmd     , only : initfile, naproc
+    use wav_pio_mod  , only : wav_pio_init
     use wav_shr_mod  , only : casename
     use wav_shr_mod  , only : inst_index, inst_name, inst_suffix
     use wav_shr_mod  , only : wav_coupling_to_cice
@@ -1588,9 +1591,15 @@ contains
       user_histfname = trim(casename)//'.ww3.hi.'
     endif
 
-    ! netcdf gridded output is used for CESM
-    user_netcdf_grdout = .true.
+    ! netCDF (PIO) gridded history output is used for CESM
+    use_historync = .true.
     ! restart and history alarms are set for CESM by default through config
+
+    ! Initialize PIO. This needs to be done prior to the first history write.
+    if (use_historync) then
+      call wav_pio_init(gcomp, mpi_comm, mds(1), naproc, rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    end if
 
     ! Read in initial/restart data and initialize the model
     ! ww3 read initialization occurs in w3iors (which is called by initmd in module w3initmd)
@@ -1678,12 +1687,12 @@ contains
     write(logmsg,'(A,l)') trim(subname)//': Custom restart names in use ',use_user_restname
     call ESMF_LogWrite(trim(logmsg), ESMF_LOGMSG_INFO)
 
-    call NUOPC_CompAttributeGet(gcomp, name='gridded_netcdfout', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
+    call NUOPC_CompAttributeGet(gcomp, name='use_historync', value=cvalue, isPresent=isPresent, isSet=isSet, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     if (isPresent .and. isSet) then
-      user_netcdf_grdout=(trim(cvalue)=="true")
+      use_historync=(trim(cvalue)=="true")
     end if
-    write(logmsg,'(A,l)') trim(subname)//': Gridded netcdf output is requested ',user_netcdf_grdout
+    write(logmsg,'(A,l)') trim(subname)//': Gridded netcdf output is requested ',use_historync
     call ESMF_LogWrite(trim(logmsg), ESMF_LOGMSG_INFO)
 
     if (use_user_histname) then

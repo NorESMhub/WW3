@@ -54,6 +54,7 @@ contains
 
 #ifdef CESMCOUPLED
     use shr_pio_mod, only : shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
+    use wav_shr_mod, only : inst_name
 #endif
     use ESMF         , only : ESMF_GridComp, ESMF_UtilStringUpperCase, ESMF_VM, ESMF_FAILURE
     use ESMF         , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_ERROR
@@ -85,13 +86,12 @@ contains
     rc = ESMF_SUCCESS
 
 #ifdef CESMCOUPLED
-    ! TODO: needs testing
     wav_pio_subsystem => shr_pio_getiosys(inst_name)
     pio_iotype =  shr_pio_getiotype(inst_name)
     if ((pio_iotype==PIO_IOTYPE_NETCDF).or.(pio_iotype==PIO_IOTYPE_PNETCDF)) then
-      nmode0 = shr_pio_getioformat(inst_name)
+      pio_ioformat = shr_pio_getioformat(inst_name)
     else
-      nmode0 = 0
+      pio_ioformat = 0
     endif
 
     call pio_seterrorhandling(wav_pio_subsystem, PIO_RETURN_ERROR)

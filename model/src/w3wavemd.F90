@@ -557,9 +557,9 @@ CONTAINS
 #ifdef W3_TIMINGS
     USE W3PARALL, only : PRINT_MY_TIME
 #endif
-    use w3iogoncdmd   , only : w3iogoncd
-    use w3odatmd      , only : histwr, rstwr, user_netcdf_grdout
+    use w3odatmd      , only : histwr, rstwr
 #ifdef W3_PIO
+    use wav_history_mod , only : write_history
     USE W3ODATMD,         ONLY : FNMRST
     USE W3GDATMD,         ONLY : MAPST2
 #endif
@@ -2696,18 +2696,10 @@ CONTAINS
             !
             IF ( DTTST .EQ. 0. ) THEN
               if (do_gridded_output) then
-                if (user_netcdf_grdout) then
-#ifdef W3_MPI
-                  IF ( FLGMPI(0) )CALL MPI_WAITALL( NRQGO, IRQGO, STATIO, IERR_MPI )
-                  FLGMPI(0) = .FALSE.
+                if (use_historync) then
+#ifdef W3_PIO
+                  call write_history ( time )
 #endif
-                  IF ( IAPROC .EQ. NAPFLD ) THEN
-#ifdef W3_MPI
-                    IF ( FLGMPI(1) ) CALL MPI_WAITALL( NRQGO2, IRQGO2, STATIO, IERR_MPI )
-                    FLGMPI(1) = .FALSE.
-#endif
-                    CALL W3IOGONCD ()
-                  END IF
                 else
                   ! default (binary) output
                   IF ( IAPROC .EQ. NAPFLD ) THEN
@@ -2732,7 +2724,7 @@ CONTAINS
                       CALL W3IOGO( 'WRITE', NDS(7), ITEST, IMOD )
                     endif
                   end if
-                end if ! user_netcdf_grdout
+                end if ! use_historync
 
               ELSE IF ( do_point_output ) THEN
                 IF ( IAPROC .EQ. NAPPNT ) THEN
@@ -2876,11 +2868,6 @@ CONTAINS
         !
 #ifdef W3_MPI
         IF ( FLGMPI(0) ) CALL MPI_WAITALL ( NRQGO, IRQGO , STATIO, IERR_MPI )
-        if (user_netcdf_grdout) then
-          IF ( FLGMPI(1) .and. ( IAPROC .EQ. NAPFLD ) ) then
-            CALL MPI_WAITALL ( NRQGO2, IRQGO2 , STATIO, IERR_MPI )
-          end if
-        end if
         IF ( FLGMPI(2) ) CALL MPI_WAITALL ( NRQPO, IRQPO1, STATIO, IERR_MPI )
         IF ( FLGMPI(4) ) CALL MPI_WAITALL ( NRQRS, IRQRS , STATIO, IERR_MPI )
         IF ( FLGMPI(8) ) CALL MPI_WAITALL ( NRQRS, IRQRS , STATIO, IERR_MPI )
