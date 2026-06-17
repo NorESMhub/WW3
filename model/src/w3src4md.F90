@@ -225,12 +225,11 @@ CONTAINS
     ! 10. Source code :
     !
     !/ ------------------------------------------------------------------- /
-    USE W3ODATMD, ONLY: IAPROC
+    !USE W3ODATMD, ONLY: IAPROC
     USE CONSTANTS, ONLY: TPIINV, GRAV, nu_air
-    USE W3GDATMD, ONLY: NK, NTH, NSPEC, SIG, DTH, DDEN, WWNMEANP, &
-         WWNMEANPTAIL, FTE, FTF, SSTXFTF, SSTXFTWN,&
-         SSTXFTFTAIL, SSWELLF, ESIN, ECOS, AAIRCMIN, &
-         AAIRGB, AALPHA, ZZWND, SSDSC
+    USE W3GDATMD, ONLY: NK, NTH, NSPEC, SIG, DDEN, WWNMEANP, &
+         WWNMEANPTAIL, FTE, FTF, SSTXFTWN,&
+         SSTXFTFTAIL, ESIN, ECOS, SSDSC
 #ifdef W3_S
     USE W3SERVMD, ONLY: STRACE
 #endif
@@ -241,6 +240,7 @@ CONTAINS
     !
 #ifdef W3_FLX5
     USE W3FLX5MD
+    USE W3GDATMD, ONLY: ZZWND
 #endif
     IMPLICIT NONE
     !/
@@ -506,10 +506,11 @@ CONTAINS
          RADE,                                      &
 #endif
          DELAB,ABMIN
-    USE W3GDATMD, ONLY: NK, NTH, NSPEC, DDEN, SIG, SIG2, TH,         &
-         ESIN, ECOS, EC2, ZZWND, AALPHA, BBETA, ZZALP,&
+    USE W3GDATMD, ONLY: NK, NTH, NSPEC, DDEN, SIG, SIG2,         &
+         ESIN, ECOS, ZZWND, AALPHA, BBETA, ZZALP,&
          TTAUWSHELTER, SSWELLF, DDEN2, DTH, SSINTHP,  &
-         ZZ0RAT, SSINBR, SINTAILPAR
+         ZZ0RAT, SINTAILPAR
+    !USE W3GDATMD, ONLY: SSINBR
 #ifdef W3_S
     USE W3SERVMD, ONLY: STRACE
 #endif
@@ -519,7 +520,7 @@ CONTAINS
 #ifdef W3_T0
     USE W3ODATMD, ONLY: NDST
 #endif
-    USE W3ODATMD, ONLY: IAPROC
+    !USE W3ODATMD, ONLY: IAPROC
 #ifdef W3_T0
     USE W3ARRYMD, ONLY: PRT2DS
 #endif
@@ -546,15 +547,17 @@ CONTAINS
 #ifdef W3_S
     INTEGER, SAVE           :: IENT = 0
 #endif
-    REAL                    :: FACLN1, FACLN2, LAMBDA
+    REAL                    :: FACLN1, FACLN2
     REAL                    :: COSU, SINU, TAUX, TAUY, USDIRP, USTP
     REAL                    :: TAUPX, TAUPY, UST2, TAUW, TAUWB
     REAL   , PARAMETER      :: EPS1 = 0.00001, EPS2 = 0.000001
+#if defined(W3_T) || defined(W3_STAB3)
     REAL                    :: Usigma           !standard deviation of U due to gustiness
     REAL                    :: USTARsigma       !standard deviation of USTAR due to gustiness
+#endif
     REAL                    :: CM,UCN,ZCN, &
          Z0VISC, Z0NOZ, EB,  &
-         EBX, EBY, AORB, AORB1, FW, UORB, TH2, &
+         EBX, EBY, AORB, AORB1, FW, UORB,  &
          RE, FU, FUD, SWELLCOEFV, SWELLCOEFT
     REAL                   ::  PTURB, PVISC, SMOOTH
     REAL XI,DELI1,DELI2
@@ -572,8 +575,8 @@ CONTAINS
     REAL   , PARAMETER      :: KM=363.,CMM=0.2325  ! K and C at phase speed minimum in rad/m
     REAL                    :: OMEGACC, OMEGA, ZZ0, ZX, ZBETA, USTR, TAUR,  &
          CONST1, LEVTAIL0, X0, Y, DELY, YC, ZMU,      &
-         LEVTAIL, CGTAIL, ALPHAM, FM, ALPHAT, FMEAN
-
+         LEVTAIL, CGTAIL, ALPHAM, FM, ALPHAT
+    !REAL                    :: FMEAN
     REAL, ALLOCATABLE       :: W(:)
 #ifdef W3_T0
     REAL                    :: DOUT(NK,NTH)
@@ -1064,11 +1067,10 @@ CONTAINS
     !
     !/ ------------------------------------------------------------------- /
     USE CONSTANTS, ONLY: TPIINV, RADE, GRAV
-    USE W3ODATMD,  ONLY: NDSE
-    USE W3SERVMD,  ONLY: EXTCDE
+    !USE W3ODATMD,  ONLY: NDSE
     USE W3DISPMD,  ONLY: WAVNU2
     USE W3GDATMD,  ONLY: SIG, DSIP, NK, NTH, TTAUWSHELTER,             &
-         SSDSDTH, SSDSCOS, TH, DTH, XFR, ECOS, ESIN,   &
+         SSDSDTH, SSDSCOS, TH, DTH, XFR, ECOS,         &
          SSDSC,  SSDSBRF1, SSDSBCK, SSDSBINT, SSDSPBK, &
          SSDSABK, SSDSHCK, IKTAB, DCKI, SATINDICES,    &
          SATWEIGHTS, CUMULW, NKHS, NKD, NDTAB, QBI,    &
@@ -1481,7 +1483,8 @@ CONTAINS
 #ifdef W3_S
     USE W3SERVMD, ONLY: STRACE
 #endif
-    USE W3GDATMD, ONLY: AALPHA, BBETA, ZZALP, FACHFE, ZZ0MAX
+    USE W3GDATMD, ONLY: AALPHA, BBETA, ZZALP, ZZ0MAX
+    !USE W3GDATMD, ONLY: FACHFE
 #ifdef W3_T
     USE W3ODATMD, ONLY: NDST
 #endif
@@ -1604,6 +1607,7 @@ CONTAINS
     !/
     !/    15-May-2007 : Origination in WW3                  ( version 3.10.SHOM )
     !/    24-Jan-2013 : Allows to read in table             ( version 4.08 )
+    !/    04-Jul-2025 : Remove labelled statements          ( version X.XX )
     !
     !  1. Purpose :
     !
@@ -1651,8 +1655,8 @@ CONTAINS
 #ifdef W3_S
     USE W3SERVMD, ONLY: STRACE
 #endif
-    USE W3GDATMD, ONLY: AALPHA, BBETA, ZZALP, FACHFE,  &
-         TTAUWSHELTER, ZZ0MAX
+    USE W3GDATMD, ONLY: AALPHA, BBETA, ZZALP
+    !USE W3GDATMD, ONLY: FACHFE
     USE W3ODATMD, ONLY: NDSE
 #ifdef W3_T
     USE W3ODATMD, ONLY: NDST
@@ -1728,91 +1732,98 @@ CONTAINS
     DELTAIL = ALPHAM/REAL(ILEVTAIL)
     CONST1  = BBETA/KAPPA**2
     OMEGAC  = SIGMAX
-800 CONTINUE
-    IF ( NOFILE ) THEN
-      WRITE(NDSE,*) 'Filling 3D look-up table for SIN4. please wait'
-      WRITE(NDSE,*)  IDSTR, VERGRD, SIGMAX, AALPHA, BBETA, IUSTAR, IALPHA,  &
-           ILEVTAIL, ZZALP, KAPPA, GRAV
-      !
-      TAUHFT(0:IUSTAR,0:IALPHA)=0.  !table initialization
-      !
-      ALLOCATE(W(JTOT))
-      W(2:JTOT-1)=1.
-      W(1)=0.5
-      W(JTOT)=0.5
-      X0 = 0.05
-      !
-      DO K=0,IUSTAR
-        UST0      = MAX(REAL(K)*DELUST,0.000001)
-        DO L=0,IALPHA
-          UST=UST0
-          ZZ0       = UST0**2*(AALPHA+FLOAT(L)*DELALP)/GRAV
-          OMEGACC  = MAX(OMEGAC,X0*GRAV/UST)
-          YC       = OMEGACC*SQRT(ZZ0/GRAV)
-          DELY     = MAX((1.-YC)/REAL(JTOT),0.)
-          ! For a given value of UST and ALPHA,
-          ! the wave-supported stress is integrated all the way
-          ! to 0.05*g/UST
-          DO I=0,ILEVTAIL
-            LEVTAIL=REAL(I)*DELTAIL
-            TAUHFT(K,L)=0.
-            TAUHFT2(K,L,I)=0.
-            TAUW0=UST0**2
-            TAUW=TAUW0
-            DO J=1,JTOT
-              Y        = YC+REAL(J-1)*DELY
-              OMEGA    = Y*SQRT(GRAV/ZZ0)
-              ! This is the deep water phase speed
-              CM       = GRAV/OMEGA
-              !this is the inverse wave age, shifted by ZZALP (tuning)
-              ZX       = UST0/CM +ZZALP
-              ZARG     = MIN(KAPPA/ZX,20.)
-              ZMU      = MIN(GRAV*ZZ0/CM**2*EXP(ZARG),1.)
-              ZLOG     = MIN(ALOG(ZMU),0.)
-              ZBETA        = CONST1*ZMU*ZLOG**4
-              ! Power of Y in denominator should be FACHFE-4
-              TAUHFT(K,L)  = TAUHFT(K,L)+W(J)*ZBETA/Y*DELY
-              ZX       = UST/CM +ZZALP
-              ZARG     = MIN(KAPPA/ZX,20.)
-              ZMU      = MIN(GRAV*ZZ0/CM**2*EXP(ZARG),1.)
-              ZLOG     = MIN(ALOG(ZMU),0.)
-              ZBETA        = CONST1*ZMU*ZLOG**4
-              ! Power of Y in denominator should be FACHFE-4
-              TAUHFT2(K,L,I)  = TAUHFT2(K,L,I)+W(J)*ZBETA*(UST/UST0)**2/Y*DELY
-              TAUW=TAUW-W(J)*UST**2*ZBETA*LEVTAIL/Y*DELY
-              UST=SQRT(MAX(TAUW,0.))
-            END DO
+    DO
+      IF ( NOFILE ) THEN
+        WRITE(NDSE,*) 'Filling 3D look-up table for SIN4. please wait'
+        WRITE(NDSE,*)  IDSTR, VERGRD, SIGMAX, AALPHA, BBETA, IUSTAR, IALPHA,  &
+             ILEVTAIL, ZZALP, KAPPA, GRAV
+        !
+        TAUHFT(0:IUSTAR,0:IALPHA)=0.  !table initialization
+        !
+        ALLOCATE(W(JTOT))
+        W(2:JTOT-1)=1.
+        W(1)=0.5
+        W(JTOT)=0.5
+        X0 = 0.05
+        !
+        DO K=0,IUSTAR
+          UST0      = MAX(REAL(K)*DELUST,0.000001)
+          DO L=0,IALPHA
+            UST=UST0
+            ZZ0       = UST0**2*(AALPHA+FLOAT(L)*DELALP)/GRAV
+            OMEGACC  = MAX(OMEGAC,X0*GRAV/UST)
+            YC       = OMEGACC*SQRT(ZZ0/GRAV)
+            DELY     = MAX((1.-YC)/REAL(JTOT),0.)
+            ! For a given value of UST and ALPHA,
+            ! the wave-supported stress is integrated all the way
+            ! to 0.05*g/UST
+            DO I=0,ILEVTAIL
+              LEVTAIL=REAL(I)*DELTAIL
+              TAUHFT(K,L)=0.
+              TAUHFT2(K,L,I)=0.
+              TAUW0=UST0**2
+              TAUW=TAUW0
+              DO J=1,JTOT
+                Y        = YC+REAL(J-1)*DELY
+                OMEGA    = Y*SQRT(GRAV/ZZ0)
+                ! This is the deep water phase speed
+                CM       = GRAV/OMEGA
+                !this is the inverse wave age, shifted by ZZALP (tuning)
+                ZX       = UST0/CM +ZZALP
+                ZARG     = MIN(KAPPA/ZX,20.)
+                ZMU      = MIN(GRAV*ZZ0/CM**2*EXP(ZARG),1.)
+                ZLOG     = MIN(ALOG(ZMU),0.)
+                ZBETA        = CONST1*ZMU*ZLOG**4
+                ! Power of Y in denominator should be FACHFE-4
+                TAUHFT(K,L)  = TAUHFT(K,L)+W(J)*ZBETA/Y*DELY
+                ZX       = UST/CM +ZZALP
+                ZARG     = MIN(KAPPA/ZX,20.)
+                ZMU      = MIN(GRAV*ZZ0/CM**2*EXP(ZARG),1.)
+                ZLOG     = MIN(ALOG(ZMU),0.)
+                ZBETA        = CONST1*ZMU*ZLOG**4
+                ! Power of Y in denominator should be FACHFE-4
+                TAUHFT2(K,L,I)  = TAUHFT2(K,L,I)+W(J)*ZBETA*(UST/UST0)**2/Y*DELY
+                TAUW=TAUW-W(J)*UST**2*ZBETA*LEVTAIL/Y*DELY
+                UST=SQRT(MAX(TAUW,0.))
+              END DO
 #ifdef W3_T
-            WRITE (NDST,9000) K,L,I,UST0,AALPHA+FLOAT(L)*DELALP,LEVTAIL,TAUHFT2(K,L,I)
+              WRITE (NDST,9000) K,L,I,UST0,AALPHA+FLOAT(L)*DELALP,LEVTAIL,TAUHFT2(K,L,I)
 #endif
+            END DO
           END DO
         END DO
-      END DO
-      DEALLOCATE(W)
-      OPEN (993,FILE=FNAMETAB,form='UNFORMATTED', convert=file_endian,IOSTAT=IERR,STATUS='UNKNOWN')
-      WRITE(993) IDSTR, VERGRD, SIGMAX, AALPHA, BBETA, IUSTAR, IALPHA, ILEVTAIL, ZZALP, KAPPA, GRAV
-      WRITE(993) TAUHFT(0:IUSTAR,0:IALPHA)
-      WRITE(993) TAUHFT2
-      CLOSE(993)
-      !DO K=0,IUSTAR
-      !  DO L=0,IALPHA
-      !    DO I=0,ILEVTAIL
-      !      WRITE(995,*) K,L,I,MAX(REAL(K)*DELUST,0.000001),AALPHA+FLOAT(L)*DELALP,REAL(I)*DELTAIL,TAUHFT(K,L),TAUHFT2(K,L,I)
-      !      END DO
-      !    END DO
-      !  END DO
+        DEALLOCATE(W)
+        OPEN (993,FILE=FNAMETAB,form='UNFORMATTED', convert=file_endian,IOSTAT=IERR,STATUS='UNKNOWN')
+        WRITE(993) IDSTR, VERGRD, SIGMAX, AALPHA, BBETA, IUSTAR, IALPHA, ILEVTAIL, ZZALP, KAPPA, GRAV
+        WRITE(993) TAUHFT(0:IUSTAR,0:IALPHA)
+        WRITE(993) TAUHFT2
+        CLOSE(993)
+        !DO K=0,IUSTAR
+        !  DO L=0,IALPHA
+        !    DO I=0,ILEVTAIL
+        !      WRITE(995,*) K,L,I,MAX(REAL(K)*DELUST,0.000001),AALPHA+FLOAT(L)*DELALP,REAL(I)*DELTAIL,TAUHFT(K,L),TAUHFT2(K,L,I)
+        !      END DO
+        !    END DO
+        !  END DO
+        !
+      ELSE
+        WRITE(NDSE,*) 'Reading 3D look-up table for SIN4 from file.'
+        READ(993,IOSTAT=IERR ) TAUHFT(0:IUSTAR,0:IALPHA)
+        IF (IERR .GT. 0) THEN
+          NOFILE=.TRUE.
+          CYCLE
+        END IF
+        READ(993,IOSTAT=IERR ) TAUHFT2
+        IF (IERR .GT. 0) THEN
+          NOFILE=.TRUE.
+          CYCLE
+        END IF
+        CLOSE(993)
+      END IF
       !
-    ELSE
-      WRITE(NDSE,*) 'Reading 3D look-up table for SIN4 from file.'
-      READ(993,ERR=2000,IOSTAT=IERR ) TAUHFT(0:IUSTAR,0:IALPHA)
-      READ(993,ERR=2000,IOSTAT=IERR ) TAUHFT2
-      CLOSE(993)
-    END IF
+      EXIT
+    END DO
     !
-    GOTO 2001
-2000 NOFILE=.TRUE.
-    GOTO 800
-2001 CONTINUE
     RETURN
 #ifdef W3_T
 9000 FORMAT (' TEST TABU_HFT2, K, L, I, UST, ALPHA, LEVTAIL, TAUHFT2(K,L,I) :',(3I4,4F10.5))
@@ -1849,6 +1860,8 @@ CONTAINS
     !/    14-Aug-2006 : Modified following Bidlot           ( version 2.22-SHOM )
     !/    18-Aug-2006 : Ported to version 3.09
     !/    03-Apr-2010 : Adding output of Charnock parameter ( version 3.14-IFREMER )
+    !/    03-May-2024 : Optional functional form of         ( version 7.15 )
+    !/                  Charnock coefficient and surface drag (UK Met Office).
     !
     !  1. Purpose :
     !
@@ -1895,7 +1908,7 @@ CONTAINS
     ! 10. Source code :
     !-----------------------------------------------------------------------------!
     USE CONSTANTS, ONLY: GRAV, KAPPA, NU_AIR
-    USE W3GDATMD,  ONLY: ZZWND, AALPHA, ZZ0MAX, SINTAILPAR
+    USE W3GDATMD,  ONLY: ZZWND, AALPHA, ZZ0MAX, SINTAILPAR, CAPCHNK
 #ifdef W3_T
     USE W3ODATMD, ONLY: NDST
 #endif
@@ -1908,6 +1921,7 @@ CONTAINS
     INTEGER          :: IND,J
     REAL             :: TAUW_LOCAL
     REAL             :: TAUOLD,CDRAG,WCD,USTOLD,X,UST,ZZ0,ZNU,ZZ00,F,DELF
+    REAL             :: CHATH, XMIN ! used for reduction of high winds
     INTEGER, PARAMETER      :: NITER=10
     REAL   , PARAMETER      :: XM=0.50, EPS1=0.00001
     INTEGER                 :: ITER
@@ -1918,6 +1932,7 @@ CONTAINS
     !      *EPS1*      REAL      SMALL NUMBER TO MAKE SURE THAT A SOLUTION
     !                            IS OBTAINED IN ITERATION WITH TAU>TAUW.
 
+    CHATH = AALPHA
     !
     IF (SINTAILPAR(1).GT.0.5) THEN
       TAUW_LOCAL=MAX(MIN(TAUW,TAUWMAX),0.)
@@ -1932,6 +1947,17 @@ CONTAINS
       USTAR=(TAUT(IND,J)*DELI2+TAUT(IND+1,J  )*DELI1)*DELJ2 &
            + (TAUT(IND,J+1)*DELI2+TAUT(IND+1,J+1)*DELI1)*DELJ1
     ELSE
+      IF (CAPCHNK(1).EQ.1.) THEN
+        ! Computation of sea surface roughness and charnock coefficient based
+        ! on Donelan (2018). Determines minimum charnock; reduction for winds
+        ! above a particular threshold
+        CHATH  = CAPCHNK(2) + 0.5 * (CAPCHNK(3) - CAPCHNK(2)) * (1 & 
+                 - TANH((WINDSPEED-CAPCHNK(4))/CAPCHNK(5)))
+        XMIN   = 0.15 * (CAPCHNK(3)-CHATH)
+      ELSE
+        XMIN  = 0.
+      END IF
+
       ! This max is for comparison ... to be removed later
       !        TAUW_LOCAL=MAX(MIN(TAUW,TAUWMAX),0.)
       TAUW_LOCAL=TAUW
@@ -1941,9 +1967,9 @@ CONTAINS
       TAUOLD  = MAX(USTOLD**2, TAUW_LOCAL+EPS1)
       ! Newton method to solve for ustar in U=ustar*log(Z/Z0)
       DO ITER=1,NITER
-        X   = TAUW_LOCAL/TAUOLD
+        X   = MAX(TAUW_LOCAL/TAUOLD, XMIN)
         UST = SQRT(TAUOLD)
-        ZZ00=AALPHA*TAUOLD/GRAV
+        ZZ00 = CHATH*TAUOLD/GRAV
         IF (ZZ0MAX.NE.0) ZZ00=MIN(ZZ00,ZZ0MAX)
         ! Corrects roughness ZZ00 for quasi-linear effect
         ZZ0 = ZZ00/(1.-X)**XM
@@ -1969,10 +1995,16 @@ CONTAINS
         SQRTCDM1  = MIN(WINDSPEED/USTAR,100.0)
         Z0  = ZZWND*EXP(-KAPPA*SQRTCDM1)
       ELSE
-        Z0 = AALPHA*0.001*0.001/GRAV
+        Z0 = CHATH*0.001*0.001/GRAV
       END IF
-      CHARN = AALPHA
+      CHARN = CHATH
     END IF
+    IF(CAPCHNK(1) .EQ. 1) THEN
+      ! Problem with large values of CHARN for low winds
+      CHARN = MIN( 0.09 , CHARN )
+      IF(CHARN.LT.CHATH) CHARN = CHATH
+    ENDIF
+
     !  WRITE(6,*) 'CALC_USTAR:',WINDSPEED,TAUW,AALPHA,CHARN,Z0,USTAR
     !
     RETURN
@@ -2087,10 +2119,8 @@ CONTAINS
     !/ ------------------------------------------------------------------- /
     USE CONSTANTS,ONLY: GRAV, DWAT, PI, TPI, RADE, DEBUG_NODE
     USE W3GDATMD, ONLY: NSPEC, NTH, NK, SSDSBR, SSDSBT, DDEN,      &
-         SSDSC, EC2, ES2, ESC,                      &
-         SIG, SSDSP, ECOS, ESIN, DTH, AAIRGB,       &
-         SSDSISO, SSDSDTH, SSDSBM, AAIRCMIN,        &
-         SSDSBRFDF, SSDSBCK, IKTAB, DCKI,           &
+         SSDSC, SIG, SSDSP, ECOS, ESIN, EC2, ES2, ESC, DTH, AAIRGB, &
+         SSDSDTH, SSDSBM, AAIRCMIN, IKTAB, DCKI,           &
          SATINDICES, SATWEIGHTS, CUMULW, NKHS, NKD, &
          NDTAB, QBI, DSIP, SSDSBRF1,XFR
 #ifdef W3_IG1
@@ -2125,12 +2155,11 @@ CONTAINS
     !/ ------------------------------------------------------------------- /
     !/ Local parameters
     !/
-    INTEGER                 :: IS, IS2, IS0, IKL, IKC, ID, NKL
+    INTEGER                 :: IS, IS2, IS0, IKL, ID, NKL
 #ifdef W3_S
     INTEGER, SAVE           :: IENT = 0
 #endif
-    INTEGER                 :: IK, IK1, ITH, IK2, JTH, ITH2,             &
-         IKHS, IKD, SDSNTH, IT, IKM, NKM
+    INTEGER                 :: IK, IK1, ITH, IK2, IKHS, IKD, IT
     INTEGER                 :: NSMOOTH(NK)
     REAL                    :: C, C2, CUMULWISO, COSWIND, ASUM, SDIAGISO
     REAL                    :: COEF1, COEF2, COEF4(NK),      &
@@ -2144,12 +2173,12 @@ CONTAINS
     REAL                    :: DK(NK), HS(NK), KBAR(NK), DCK(NK)
     REAL                    :: EFDF(NK)     ! Energy integrated over a spectral band
     INTEGER                 :: IKSUP(NK)
-    REAL                    :: FACSAT, DKHS, FACSTRAINB, FACSTRAINL
+    REAL                    :: FACSAT, DKHS, FACSTRAINL
     REAL                    :: BTH0(NK)     !saturation spectrum
     REAL                    :: BTH(NSPEC)   !saturation spectrum
-    REAL                    :: MSSSUM(NK,5),  FACHF
+    REAL                    :: MSSSUM(NK,5)
     REAL                    :: MSSLONG
-    REAL                    :: MSSPCS, MSSPC2, MSSPS2, MSSP, MSSD, MSSTH
+    REAL                    :: MSSPCS, MSSPC2, MSSPS2, MSSP, MSSD
     REAL                    :: MICHE, X, KLOC
 #ifdef W3_T0
     REAL                    :: DOUT(NK,NTH)
@@ -2289,16 +2318,8 @@ CONTAINS
       END DO
       !
       ! Computes Breaking probability
-      ! NOTE: for PR1 found that BTH occasionally went negative - so implemented the 
-      ! following fix for this
       !
-      do ik = IK1,NK
-         if (BTH(ik) < 0.) then
-            PB(ik) = 0.
-         else
-            PB(ik) = (MAX(SQRT(BTH(ik))-EPSR,0.))**2
-         end if
-      end do
+      PB = (MAX(SQRT(BTH)-EPSR,0.))**2
       !
       ! Multiplies by 28.16 = 22.0 * 1.6² * 1/2 with
       !  22.0 (Banner & al. 2000, figure 6)

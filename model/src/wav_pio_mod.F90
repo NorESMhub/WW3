@@ -53,10 +53,9 @@ contains
   subroutine wav_pio_init(gcomp, mpi_comm, stdout, numprocs, rc)
 
 #ifdef CESMCOUPLED
-    use shr_pio_mod  , only : shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
-    use wav_shr_mod  , only : inst_name
+    use shr_pio_mod, only : shr_pio_getiosys, shr_pio_getiotype, shr_pio_getioformat
 #endif
-    use ESMF         , only : ESMF_GridComp, ESMF_UtilStringUpperCase, ESMF_VM, ESMF_FAILURE
+    use ESMF         , only : ESMF_GridComp, ESMF_GridCompGet, ESMF_UtilStringUpperCase, ESMF_VM, ESMF_FAILURE
     use ESMF         , only : ESMF_SUCCESS, ESMF_LogWrite, ESMF_LOGMSG_ERROR
     use NUOPC        , only : NUOPC_CompAttributeGet
     use wav_kind_mod , only : CL=>SHR_KIND_CL, CS=>SHR_KIND_CS
@@ -70,7 +69,6 @@ contains
     integer            , intent(in)    :: numprocs
     integer            , intent(out)   :: rc
 
-    ! local variables
     integer           :: pio_numiotasks
     integer           :: pio_stride
     integer           :: pio_rearranger
@@ -87,9 +85,18 @@ contains
     rc = ESMF_SUCCESS
 
 #ifdef CESMCOUPLED
-    wav_pio_subsystem => shr_pio_getiosys(inst_name)
-    pio_iotype =  shr_pio_getiotype(inst_name)
-    pio_ioformat = shr_pio_getioformat(inst_name)
+    ! The CESM driver registers PIO settings under the gridcomp name (e.g. "WAV");
+    ! multi-instance members run under separate drivers with the same gridcomp name.
+    call ESMF_GridCompGet(gcomp, name=cvalue, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    wav_pio_subsystem => shr_pio_getiosys(trim(cvalue))
+    pio_iotype =  shr_pio_getiotype(trim(cvalue))
+    if ((pio_iotype==PIO_IOTYPE_NETCDF).or.(pio_iotype==PIO_IOTYPE_PNETCDF)) then
+      pio_ioformat = shr_pio_getioformat(trim(cvalue))
+    else
+      pio_ioformat = 0
+    endif
+
     call pio_seterrorhandling(wav_pio_subsystem, PIO_RETURN_ERROR)
 #else
     my_task = iaproc - 1

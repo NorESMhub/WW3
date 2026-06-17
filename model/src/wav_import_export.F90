@@ -19,7 +19,7 @@ module wav_import_export
   use wav_shr_mod  , only : ymd2date
   use wav_shr_mod  , only : chkerr
   use wav_shr_mod  , only : state_diagnose, state_reset, state_getfldptr, state_fldchk
-  use wav_shr_mod  , only : wav_coupling_to_cice, nwav_elev_spectrum, merge_import, dbug_flag, multigrid, unstr_mesh
+  use wav_shr_mod  , only : wav_coupling_to_cice, nwav_elev_spectrum, merge_import, dbug_flag, unstr_mesh
   use constants    , only : grav, tpi, dwat, dair
   use w3parall     , only : init_get_isea
 
@@ -44,7 +44,7 @@ module wav_import_export
   end interface FillGlobalInput
 
   type fld_list_type                               !< @private a structure for the list of fields
-    character(len=128) :: stdname                  !< a standard field name
+    character(len=80) :: stdname                  !< a standard field name
     integer :: ungridded_lbound = 0                !< the ungridded dimension lower bound
     integer :: ungridded_ubound = 0                !< the ugridded dimension upper bound
   end type fld_list_type
@@ -68,96 +68,6 @@ module wav_import_export
   character(*),parameter :: u_FILE_u = &            !< a character string for an ESMF log message
        __FILE__
 
-  real(r8), allocatable :: accum_ustokes_avg(:)
-  integer , allocatable :: counter_ustokes_avg(:)
-
-  real(r8), allocatable :: accum_vstokes_avg(:)
-  integer , allocatable :: counter_vstokes_avg(:)
-
-  real(r8), allocatable :: accum_hs_avg(:)
-  integer , allocatable :: counter_hs_avg(:)
-
-  real(r8), allocatable :: accum_phs0_avg(:)
-  integer , allocatable :: counter_phs0_avg(:)
-
-  real(r8), allocatable :: accum_phs1_avg(:)
-  integer , allocatable :: counter_phs1_avg(:)
-
-  real(r8), allocatable :: accum_xpdir0_avg(:)
-  real(r8), allocatable :: accum_ypdir0_avg(:)
-  integer , allocatable :: counter_pdir0_avg(:)
-
-  real(r8), allocatable :: accum_xpdir1_avg(:)
-  real(r8), allocatable :: accum_ypdir1_avg(:)
-  integer , allocatable :: counter_pdir1_avg(:)
-
-  real(r8), allocatable :: accum_pTm10_avg(:)
-  integer , allocatable :: counter_pTm10_avg(:)
-
-  real(r8), allocatable :: accum_pTm11_avg(:)
-  integer , allocatable :: counter_pTm11_avg(:)
-
-  real(r8), allocatable :: accum_tm1_avg(:)
-  integer , allocatable :: counter_tm1_avg(:)
-
-  real(r8), allocatable :: accum_xthm_avg(:)
-  real(r8), allocatable :: accum_ythm_avg(:)
-  integer , allocatable :: counter_thm_avg(:)
-
-  real(r8), allocatable :: accum_xthp0_avg(:)
-  real(r8), allocatable :: accum_ythp0_avg(:)
-  integer , allocatable :: counter_thp0_avg(:)
-
-  real(r8), allocatable :: accum_faw_avg(:)
-  integer , allocatable :: counter_faw_avg(:)
-
-  real(r8), allocatable :: accum_fp0_avg(:)
-  integer , allocatable :: counter_fp0_avg(:)
-
-  real(r8), allocatable :: accum_u_avg(:)
-  integer , allocatable :: counter_u_avg(:)
-
-  real(r8), allocatable :: accum_v_avg(:)
-  integer , allocatable :: counter_v_avg(:)
-
-  real(r8), allocatable :: accum_cu_avg(:)
-  integer , allocatable :: counter_cu_avg(:)
-
-  real(r8), allocatable :: accum_cv_avg(:)
-  integer , allocatable :: counter_cv_avg(:)
-
-  real(r8), allocatable :: accum_tusx_avg(:)
-  integer , allocatable :: counter_tusx_avg(:)
-
-  real(r8), allocatable :: accum_tusy_avg(:)
-  integer , allocatable :: counter_tusy_avg(:)
-
-  real(r8), allocatable :: accum_lamult_avg(:)
-  integer , allocatable :: counter_lamult_avg(:)
-
-  real(r8), allocatable :: accum_charn_avg(:)
-  integer , allocatable :: counter_charn_avg(:)
-
-  real(r8), allocatable :: accum_tm02_avg(:)
-  integer , allocatable :: counter_tm02_avg(:)
-
-  real(r8), allocatable :: accum_foc_avg(:)
-  integer , allocatable :: counter_foc_avg(:)
-
-  real(r8), allocatable :: accum_ifrac_avg(:)
-  integer , allocatable :: counter_ifrac_avg(:)
-
-  real(r8), allocatable :: accum_thick_avg(:)
-  integer , allocatable :: counter_thick_avg(:)
-
-  real(r8), allocatable :: accum_tauicex_avg(:)
-  integer , allocatable :: counter_tauicex_avg(:)
-
-  real(r8), allocatable :: accum_tauicey_avg(:)
-  integer , allocatable :: counter_tauicey_avg(:)
-
-  private :: accumulate
-
   !===============================================================================
 contains
   !===============================================================================
@@ -176,17 +86,15 @@ contains
   !!
   !> @author mvertens@ucar.edu, Denise.Worthen@noaa.gov
   !> @date 01-05-2022
-  subroutine advertise_fields(importState, ExportState, flds_scalar_name, aux_flds_to_cmeps, rc)
+  subroutine advertise_fields(importState, ExportState, flds_scalar_name, rc)
     ! input/output variables
     type(ESMF_State)               :: importState
     type(ESMF_State)               :: exportState
-    logical          , intent(in)  :: aux_flds_to_cmeps
     character(len=*) , intent(in)  :: flds_scalar_name
     integer          , intent(out) :: rc
 
     ! local variables
-    integer          :: n, num
-    character(len=2) :: fvalue
+    integer          :: n
     character(len=*), parameter :: subname='(wav_import_export:advertise_fields)'
     !-------------------------------------------------------------------------------
 
@@ -197,19 +105,22 @@ contains
     ! Advertise import fields
     !--------------------------------
 
-   !call fldlist_add(fldsToWav_num, fldsToWav, 'So_h'       )
+    !call fldlist_add(fldsToWav_num, fldsToWav, 'So_h'       )
     call fldlist_add(fldsToWav_num, fldsToWav, 'Si_ifrac'   )
-    call fldlist_add(fldsToWav_num, fldsToWav, 'Si_thick'   )
     call fldlist_add(fldsToWav_num, fldsToWav, 'So_u'       )
     call fldlist_add(fldsToWav_num, fldsToWav, 'So_v'       )
     call fldlist_add(fldsToWav_num, fldsToWav, 'So_t'       )
     call fldlist_add(fldsToWav_num, fldsToWav, 'Sa_tbot'    )
-    call fldlist_add(fldsToWav_num, fldsToWav, 'Sa_u10m'    )
-    call fldlist_add(fldsToWav_num, fldsToWav, 'Sa_v10m'    )
     if (cesmcoupled) then
-       call fldlist_add(fldsToWav_num, fldsToWav, 'So_bldepth' )
+      call fldlist_add(fldsToWav_num, fldsToWav, 'Sa_u'       )
+      call fldlist_add(fldsToWav_num, fldsToWav, 'Sa_v'       )
+      call fldlist_add(fldsToWav_num, fldsToWav, 'So_bldepth' )
+    else
+      call fldlist_add(fldsToWav_num, fldsToWav, 'Sa_u10m'    )
+      call fldlist_add(fldsToWav_num, fldsToWav, 'Sa_v10m'    )
     end if
     if (wav_coupling_to_cice) then
+      call fldlist_add(fldsToWav_num, fldsToWav, 'Si_thick'   )
       call fldlist_add(fldsToWav_num, fldsToWav, 'Si_floediam')
     end if
 
@@ -226,50 +137,38 @@ contains
     if (.not. unstr_mesh) then
       call fldlist_add(fldsFrWav_num, fldsFrWav, trim(flds_scalar_name))
     end if
+    call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_ustokes')
+    call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_vstokes')
+
     if (cesmcoupled) then
       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_lamult' )
-     !call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_lasl' )
-      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_ustokes')
-      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_vstokes')
-      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_hstokes')
+      !call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_lasl' )
     else
       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_z0')
+      ! coastal coupling
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_wavsuu')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_wavsuv')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_wavsvv')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_hs')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_bhd')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_tauox')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_tauoy')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_taubblx')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_taubbly')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_ubrx')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_ubry')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thm')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_t0m1')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_wnmean')
     end if
     call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pstokes_x', ungridded_lbound=1, ungridded_ubound=3)
     call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pstokes_y', ungridded_lbound=1, ungridded_ubound=3)
-
-    if (aux_flds_to_cmeps) then
-       ! fields to mediator added only for outputting daily time averged time wave fields in mediator
-       ! auxilary file
-       ! NOTE: that assumption of daily is used here and is hard-wired into the code
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_ustokes_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_vstokes_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_hs_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_phs0_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_phs1_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pdir0_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pdir1_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pTm10_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_pTm11_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_Tm1_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thm_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thp0_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_faw_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_fp0_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_u_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_v_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_cu_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_cv_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_tusx_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_tusy_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_lamult_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_charn_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_tm02_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_foc_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_ifrac_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thick_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_tauicex_avg')
-       call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_tauicey_avg')
+    if (cesmcoupled) then
+      ! diagnostic fields passed to the mediator
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_Hs')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_t01')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_t0m1')
+      call fldlist_add(fldsFrWav_num, fldsFrWav, 'Sw_thm')
     end if
 
     ! AA TODO: In the above fldlist_add calls, we are passing hardcoded ungridded_ubound values (3) because, USSPF(2)
@@ -382,23 +281,17 @@ contains
     ! Obtain the wave input from the mediator
     !---------------------------------------------------------------------------
 
-    use w3gdatmd    , only: nsea, nseal, MAPSTA, NX, NY, w3setg
+    use w3gdatmd    , only: nsea, NX, NY, w3setg
     use w3idatmd    , only: CX0, CY0, CXN, CYN, DT0, DTN, ICEI, WLEV, INFLAGS1, ICEP1, ICEP5
     use w3idatmd    , only: TC0, TCN, TLN, TIN, TI1, TI5, TW0, TWN, WX0, WY0, WXN, WYN
     use w3idatmd    , only: UX0, UY0, UXN, UYN, TU0, TUN
-    use w3idatmd    , only: tfn, w3seti
+    use w3idatmd    , only: w3seti
     use w3odatmd    , only: w3seto
-    use w3wdatmd    , only: time, w3setw
+    use w3wdatmd    , only: w3setw
 #ifdef W3_CESMCOUPLED
     use w3idatmd    , only: HSL
-#else
-    use wmupdtmd    , only: wmupd2
-    use wmmdatmd    , only: wmsetm
-    use wmmdatmd    , only: mdse, mdst, nrgrd, inpmap
-#ifdef W3_MPI
-    use wmmdatmd    , only: mpi_comm_grd
 #endif
-#endif
+    use wav_shr_mod , only : casename
 
     ! input/output variables
     type(ESMF_GridComp) , intent(inout) :: gcomp
@@ -412,16 +305,25 @@ contains
     real(r4)                :: global_data(nsea)
     real(r4), allocatable   :: global_data2(:)
     real(r4)                :: def_value
-    integer                 :: imod, j, jmod
-    integer                 :: mpi_comm_null = -1
+    character(len=10)       :: uwnd
+    character(len=10)       :: vwnd
+    integer                 :: isea
+    real(r4), parameter     :: fillv = 9.99e20
     real(r4), allocatable   :: wxdata(:)      ! only needed if merge_import
     real(r4), allocatable   :: wydata(:)      ! only needed if merge_import
-    character(len=CL)       :: msgString
     character(len=*), parameter :: subname='(wav_import_export:import_fields)'
     !---------------------------------------------------------------------------
 
     rc = ESMF_SUCCESS
     if (dbug_flag > 5) call ESMF_LogWrite(trim(subname)//' called', ESMF_LOGMSG_INFO)
+
+    if (cesmcoupled) then
+      uwnd = 'Sa_u'
+      vwnd = 'Sa_v'
+    else
+      uwnd = 'Sa_u10m'
+      vwnd = 'Sa_v10m'
+    end if
 
     ! Get import state, clock and vm
     call ESMF_GridCompGet(gcomp, clock=clock, importState=importState, vm=vm, rc=rc)
@@ -438,11 +340,6 @@ contains
     ! set time for input data to time0 and timen (shouldn't matter)
 
     def_value = 0.0_r4
-
-#ifndef W3_CESMCOUPLED
-    call w3setg ( 1, mdse, mdst )
-    call w3seti ( 1, mdse, mdst )
-#endif
 
     ! ---------------
     ! INFLAGS1(1)
@@ -470,6 +367,14 @@ contains
       if (state_fldchk(importState, 'So_u')) then
         call SetGlobalInput(importState, 'So_u', vm, global_data, rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+        if(trim(casename) == 'ufs.hafs') then
+          do isea = 1,nsea
+            if(abs(global_data(isea)-fillv).lt.0.01) then
+              global_data(isea)=0.0
+            end if
+          end do
+        end if
         call FillGlobalInput(global_data, CX0)
         call FillGlobalInput(global_data, CXN)
       end if
@@ -479,6 +384,13 @@ contains
       if (state_fldchk(importState, 'So_v')) then
         call SetGlobalInput(importState, 'So_v', vm, global_data, rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
+        if(trim(casename) == 'ufs.hafs') then
+          do isea = 1,nsea
+            if(abs(global_data(isea)-fillv).lt.0.01) then
+              global_data(isea)=0.0
+            end if
+          end do
+        end if
         call FillGlobalInput(global_data, CY0)
         call FillGlobalInput(global_data, CYN)
       end if
@@ -495,7 +407,7 @@ contains
         ! set mask using u-wind field if merge_import; assume all import fields
         ! will have same missing overlap region
         ! import_mask memory will be allocate in set_importmask
-        call set_importmask(importState, clock, 'Sa_u10m', vm, rc)
+        call set_importmask(importState, clock, trim(uwnd), vm, rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
         allocate(wxdata(nsea))
         allocate(wydata(nsea))
@@ -514,8 +426,8 @@ contains
       ! atm u wind
       WX0(:,:) = def_value
       WXN(:,:) = def_value
-      if (state_fldchk(importState, 'Sa_u10m')) then
-        call SetGlobalInput(importState, 'Sa_u10m', vm, global_data, rc)
+      if (state_fldchk(importState, trim(uwnd))) then
+        call SetGlobalInput(importState, trim(uwnd), vm, global_data, rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
         if (merge_import) then
           call FillGlobalInput(global_data, import_mask, wxdata, WX0)
@@ -533,9 +445,9 @@ contains
       ! atm v wind
       WY0(:,:) = def_value
       WYN(:,:) = def_value
-      if (state_fldchk(importState, 'Sa_v10m')) then
+      if (state_fldchk(importState, trim(vwnd))) then
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
-        call SetGlobalInput(importState, 'Sa_v10m', vm, global_data, rc)
+        call SetGlobalInput(importState, trim(vwnd), vm, global_data, rc)
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
         if (merge_import) then
           call FillGlobalInput(global_data, import_mask, wydata, WY0)
@@ -647,31 +559,6 @@ contains
       end if
     end if
 
-#ifndef W3_CESMCOUPLED
-    if (multigrid) then
-      do j = lbound(inflags1,1),ubound(inflags1,1)
-        if (inflags1(j)) then
-          do imod = 1,nrgrd
-            tfn(:,j) = timen(:)
-            call w3setg ( imod, mdse, mdst )
-            call w3setw ( imod, mdse, mdst )
-            call w3seti ( imod, mdse, mdst )
-            call w3seto ( imod, mdse, mdst )
-            call wmsetm ( imod, mdse, mdst )
-#ifdef W3_MPI
-            if ( mpi_comm_grd .eq. mpi_comm_null ) cycle
-#endif
-            !TODO: when is this active? jmod = -999
-            jmod = inpmap(imod,j)
-            if ( jmod.lt.0 .and. jmod.ne.-999 ) then
-              call wmupd2( imod, j, jmod, rc )
-              if (ChkErr(rc,__LINE__,u_FILE_u)) return
-            endif
-          end do
-        end if
-      end do
-    end if
-#endif
     if (dbug_flag > 5) call ESMF_LogWrite(trim(subname)//' done', ESMF_LOGMSG_INFO)
 
   end subroutine import_fields
@@ -693,24 +580,19 @@ contains
     !---------------------------------------------------------------------------
 
     use wav_kind_mod,   only : R8 => SHR_KIND_R8
-    use w3adatmd      , only : USSX, USSY, USSP, HS, THM, FP0
-    use w3adatmd      , only : THP0, TAUICE
-    use w3adatmd      , only : TUSX, TUSY, PHIOC, PHIAW
-    use w3adatmd      , only : PHS, PDIR, T01, PT1, charn, T02
+    use w3adatmd      , only : USSP, tauox, tauoy, wnmean, taubbl
     use w3adatmd      , only : w3seta
     use w3idatmd      , only : w3seti
     use w3wdatmd      , only : va, w3setw
-    use w3odatmd      , only : w3seto, naproc, iaproc, NOSWLL
-    use w3gdatmd      , only : nseal, mapsf, MAPSTA, USSPF, NK, w3setg
+    use w3odatmd      , only : w3seto
+    use w3gdatmd      , only : mapsf, MAPSTA, USSPF, NK, w3setg
     use w3iogomd      , only : CALC_U3STOKES
 #ifdef W3_CESMCOUPLED
+    use w3odatmd      , only : naproc, iaproc
     use w3wdatmd      , only : ASF, UST
-    use w3adatmd      , only : USSHX, USSHY, UD, HS
+    use w3adatmd      , only : USSX, USSY, USSHX, USSHY, UD, HS, T01, T0M1, THM
     use w3idatmd      , only : HSL
-#else
-    use wmmdatmd      , only : mdse, mdst, wmsetm
 #endif
-    use constants     , only : UNDEF
 
     ! input/output/variables
     type(ESMF_GridComp)            :: gcomp
@@ -719,38 +601,37 @@ contains
     ! Local variables
 #ifdef W3_CESMCOUPLED
     real(R8)          :: fillvalue = 1.0e30_R8                 ! special missing value
-    real              :: sww, langmt, lasl, alphal
-    real(r8)          :: laslpj
+    real              :: sww, langmt, lasl, laslpj, alphal
 #else
     real(R8)          :: fillvalue = zero                      ! special missing value
 #endif
     type(ESMF_State)  :: exportState
-    type(ESMF_State)  :: importState ! needed if aux history is output by cmeps
-    integer           :: n, jsea, isea, ix, iy, ib, ik
+    integer           :: jsea, isea, ix, iy, ib
 
     real(r8), pointer :: z0rlen(:)
     real(r8), pointer :: charno(:)
-    real(r8), pointer :: wbcuru(:)
-    real(r8), pointer :: wbcurv(:)
-    real(r8), pointer :: wbcurp(:)
+#ifdef W3_CESMCOUPLED
+    real(r8), pointer :: sw_lamult(:)
+    real(r8), pointer :: sw_lasl(:)
+#endif
+    real(r8), pointer :: sw_ustokes(:)
+    real(r8), pointer :: sw_vstokes(:)
+
     real(r8), pointer :: sxxn(:)
     real(r8), pointer :: sxyn(:)
     real(r8), pointer :: syyn(:)
-
-    real(r8), pointer :: sw_lamult(:)
-   !real(r8), pointer :: sw_lasl(:)
-    real(r8), pointer :: sw_ustokes(:)
-    real(r8), pointer :: sw_vstokes(:)
-    real(r8), pointer :: sw_hstokes(:)
-
-    real(r8), pointer :: sa_u(:)
-    real(r8), pointer :: sa_v(:)
-
-    real(r8), pointer :: so_u(:)
-    real(r8), pointer :: so_v(:)
-
-    real(r8), pointer :: si_ifrac(:)
-    real(r8), pointer :: si_thick(:)
+    real(r8), pointer :: sw_hs(:)
+    real(r8), pointer :: sw_bhd(:)
+    real(r8), pointer :: sw_tauox(:)
+    real(r8), pointer :: sw_tauoy(:)
+    real(r8), pointer :: sw_taubblx(:)
+    real(r8), pointer :: sw_taubbly(:)
+    real(r8), pointer :: sw_ubrx(:)
+    real(r8), pointer :: sw_ubry(:)
+    real(r8), pointer :: sw_thm(:)
+    real(r8), pointer :: sw_t01(:)
+    real(r8), pointer :: sw_t0m1(:)
+    real(r8), pointer :: sw_wnmean(:)
 
     ! d2 is location, d1 is frequency  - nwav_elev_spectrum frequencies will be used
     real(r8), pointer :: wave_elevation_spectrum(:,:)
@@ -758,12 +639,6 @@ contains
     ! Partitioned stokes drift
     real(r8), pointer :: sw_pstokes_x(:,:)
     real(r8), pointer :: sw_pstokes_y(:,:)
-
-    type(ESMF_Clock)  :: clock
-    type(ESMF_Time)   :: currtime, nexttime
-    integer           :: yr,mon,day,sec    ! time units
-    integer           :: yr_next,mon_next,day_next,sec_next    ! time units
-    real(r8), pointer :: dataptr(:)
     character(len=*), parameter :: subname='(wav_import_export:export_fields)'
     !---------------------------------------------------------------------------
 
@@ -771,30 +646,10 @@ contains
     if (dbug_flag > 5) call ESMF_LogWrite(trim(subname)//' called', ESMF_LOGMSG_INFO)
 
     ! Get export state
-    call NUOPC_ModelGet(gcomp, exportState=exportState, importState=importState, rc=rc)
+    call NUOPC_ModelGet(gcomp, exportState=exportState, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
-    call ESMF_GridCompGet(gcomp, exportState=exportstate, clock=clock, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_ClockGet(clock, currtime=currtime, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_TimeGet(currtime, yy=yr, mm=mon, dd=day, s=sec, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_ClockGetNextTime(clock, nextTime=nexttime, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    call ESMF_TimeGet(nexttime, yy=yr_next, mm=mon_next, dd=day_next, s=sec_next, rc=rc)
-    if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-#ifndef W3_CESMCOUPLED
-    call w3setg ( 1, mdse, mdst )
-    call w3setw ( 1, mdse, mdst )
-    call w3seta ( 1, mdse, mdst )
-    call w3seti ( 1, mdse, mdst )
-    call w3seto ( 1, mdse, mdst )
-    if (multigrid) then
-      call wmsetm ( 1, mdse, mdst )
-    end if
-#else
+#ifdef W3_CESMCOUPLED
     if (state_fldchk(exportState, 'Sw_lamult')) then
       call state_getfldptr(exportState, 'Sw_lamult', sw_lamult, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -808,7 +663,7 @@ contains
            sww = atan2(USSHY(jsea),USSHX(jsea)) - UD(isea)
            alphal = atan( sin(sww) / (                                       &
                           2.5 * UST(isea)*ASF(isea)*sqrt(dair/dwat)          &
-                        / max(1.e-14_r8, sqrt(USSX(jsea)**2+USSY(jsea)**2))  &
+                        / max(1.e-14_r8, sqrt(USSX(jsea)**2+USSY(jsea)**2))     &
                         * log(max(1.0, abs(1.25*HSL(ix,iy)/HS(jsea))))       &
                         + cos(sww)   )                                       &
                         )
@@ -823,27 +678,27 @@ contains
         endif
       enddo
     end if
-    ! if (state_fldchk(exportState, 'Sw_lasl')) then
-    !   call state_getfldptr(exportState, 'Sw_lasl', sw_lasl, rc=rc)
-    !   if (ChkErr(rc,__LINE__,u_FILE_u)) return
-    !   sw_lasl(:) = fillvalue
-    !   do jsea=1, nseal
-    !      isea = iaproc + (jsea-1)*naproc
-    !      ix  = mapsf(isea,1)
-    !      iy  = mapsf(isea,2)
-    !      if (mapsta(iy,ix) == 1) then
-    !         ! note: an arbitrary minimum value of 0.2 is set to avoid zero
-    !         !       Langmuir number which may result from zero surface friction
-    !         !       velocity but may cause unphysically strong Langmuir mixing
-    !         sw_lasl(jsea) = max(0.2, sqrt(UST(isea)*ASF(isea)*sqrt(dair/dwat) &
-    !                       / max(1.e-14, sqrt(USSHX(jsea)**2+USSHY(jsea)**2))))
-    !      else
-    !         sw_lasl(jsea)  = 1.e6
-    !      endif
-    !   enddo
-    ! end if
-#endif
-    ! surface stokes drift
+    if (state_fldchk(exportState, 'Sw_lasl')) then
+      call state_getfldptr(exportState, 'Sw_lasl', sw_lasl, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      sw_lasl(:) = fillvalue
+      do jsea=1, nseal_cpl
+         isea = iaproc + (jsea-1)*naproc
+         ix  = mapsf(isea,1)
+         iy  = mapsf(isea,2)
+         if (mapsta(iy,ix) == 1) then
+            ! note: an arbitrary minimum value of 0.2 is set to avoid zero
+            !       Langmuir number which may result from zero surface friction
+            !       velocity but may cause unphysically strong Langmuir mixing
+            sw_lasl(jsea) = max(0.2, sqrt(UST(isea)*ASF(isea)*sqrt(dair/dwat) &
+                          / max(1.e-14, sqrt(USSHX(jsea)**2+USSHY(jsea)**2))))
+         else
+            sw_lasl(jsea)  = 1.e6
+         endif
+      enddo
+    end if
+
+    ! surface stokes drift at history frequency
     if (state_fldchk(exportState, 'Sw_ustokes')) then
       call state_getfldptr(exportState, 'Sw_ustokes', sw_ustokes, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -859,7 +714,6 @@ contains
         endif
       enddo
     end if
-
     if (state_fldchk(exportState, 'Sw_vstokes')) then
       call state_getfldptr(exportState, 'Sw_vstokes', sw_vstokes, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -875,33 +729,83 @@ contains
         endif
       enddo
     end if
-    if (state_fldchk(exportState, 'Sw_hstokes')) then
-      call state_getfldptr(exportState, 'Sw_hstokes', sw_hstokes, rc=rc)
+
+    ! diagnostic fields passed to the mediator
+    if (state_fldchk(exportState, 'Sw_Hs')) then
+      call state_getfldptr(exportState, 'Sw_Hs', Sw_Hs, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      sw_hstokes(:) = fillvalue
+      Sw_Hs(:) = fillvalue
       do jsea=1, nseal_cpl
         call init_get_isea(isea, jsea)
         ix  = mapsf(isea,1)
         iy  = mapsf(isea,2)
-        if (mapsta(iy,ix) == 1 .and. HS(jsea) > zero .and. &
-            sqrt(USSX(jsea)**2+USSY(jsea)**2)>zero .and. sqrt(USSHX(jsea)**2+USSHY(jsea)**2)>zero ) then
-           sww = atan2(USSHY(jsea),USSHX(jsea)) - UD(isea)
-           alphal = atan( sin(sww) / (                                       &
-                          2.5 * UST(isea)*ASF(isea)*sqrt(dair/dwat)          &
-                        / max(1.e-14_r8, sqrt(USSX(jsea)**2+USSY(jsea)**2))  &
-                        * log(max(1.0, abs(1.25*HSL(ix,iy)/HS(jsea))))       &
-                        + cos(sww)   )                                       &
-                        )
-           lasl = sqrt(ust(isea) * asf(isea) * sqrt(dair/dwat) &
-                                 / sqrt(usshx(jsea)**2 + usshy(jsea)**2 ))
-           laslpj = lasl * sqrt(abs(cos(alphal)) &
-               / abs(cos(sww-alphal)))
-           sw_hstokes(jsea) = laslpj
+        if (mapsta(iy,ix) == 1) then
+          Sw_Hs(jsea) = HS(jsea)
         else
-           sw_hstokes(jsea) = 0.
+          Sw_Hs(jsea) = 0.
         endif
       enddo
     end if
+
+    if (state_fldchk(exportState, 'Sw_t01')) then
+      call state_getfldptr(exportState, 'Sw_t01', sw_t01, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      sw_t01(:) = fillvalue
+      do jsea=1, nseal_cpl
+        call init_get_isea(isea, jsea)
+        ix  = mapsf(isea,1)
+        iy  = mapsf(isea,2)
+        if (mapsta(iy,ix) == 1) then
+          sw_t01(jsea) = t01(jsea)
+        else
+          sw_t01(jsea) = 0.
+        endif
+      enddo
+    end if
+
+    if (state_fldchk(exportState, 'Sw_t0m1')) then
+      call state_getfldptr(exportState, 'Sw_t0m1', sw_t0m1, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      sw_t0m1(:) = fillvalue
+      do jsea=1, nseal_cpl
+        call init_get_isea(isea, jsea)
+        ix  = mapsf(isea,1)
+        iy  = mapsf(isea,2)
+        if (mapsta(iy,ix) == 1) then
+          sw_t0m1(jsea) = t0m1(jsea)
+        else
+          sw_t0m1(jsea) = 0.
+        endif
+      enddo
+    end if
+
+    if (state_fldchk(exportState, 'Sw_thm')) then
+      call state_getfldptr(exportState, 'Sw_thm', sw_thm, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      sw_thm(:) = fillvalue
+      do jsea=1, nseal_cpl
+        call init_get_isea(isea, jsea)
+        ix  = mapsf(isea,1)
+        iy  = mapsf(isea,2)
+        if (mapsta(iy,ix) == 1) then
+          sw_thm(jsea) = thm(jsea)
+        else
+          sw_thm(jsea) = 0.
+        endif
+      enddo
+    end if
+#else
+    ! surface stokes drift at coupling frequency
+    if ( state_fldchk(exportState, 'Sw_ustokes') .and. &
+         state_fldchk(exportState, 'Sw_vstokes') )then
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call state_getfldptr(exportState, 'Sw_ustokes', sw_ustokes, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call state_getfldptr(exportState, 'Sw_vstokes', sw_vstokes, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call CalcStokes(va, sw_ustokes, sw_vstokes, fillvalue)
+    end if
+#endif
 
     if (state_fldchk(exportState, 'Sw_ch')) then
       call state_getfldptr(exportState, 'charno', charno, rc=rc)
@@ -915,29 +819,18 @@ contains
       call CalcRoughl(z0rlen)
     endif
 
-    if ( state_fldchk(exportState, 'wbcuru') .and. &
-         state_fldchk(exportState, 'wbcurv') .and. &
-         state_fldchk(exportState, 'wbcurp')) then
-      call state_getfldptr(exportState, 'wbcuru', wbcuru, rc=rc)
+    if ( state_fldchk(exportState, 'Sw_wavsuu') .and. &
+         state_fldchk(exportState, 'Sw_wavsuv') .and. &
+         state_fldchk(exportState, 'Sw_wavsvv')) then
+      call state_getfldptr(exportState, 'Sw_wavsuu', sxxn, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      call state_getfldptr(exportState, 'wbcurv', wbcurv, rc=rc)
+      call state_getfldptr(exportState, 'Sw_wavsuv', sxyn, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      call state_getfldptr(exportState, 'wbcurp', wbcurp, rc=rc)
+      call state_getfldptr(exportState, 'Sw_wavsvv', syyn, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      call CalcBotcur( va, wbcuru, wbcurv, wbcurp)
+      call CalcRadstr2D( va, sxxn, sxyn, syyn, fillvalue)
     end if
 
-    if ( state_fldchk(exportState, 'wavsuu') .and. &
-         state_fldchk(exportState, 'wavsuv') .and. &
-         state_fldchk(exportState, 'wavsvv')) then
-      call state_getfldptr(exportState, 'sxxn', sxxn, rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      call state_getfldptr(exportState, 'sxyn', sxyn, rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      call state_getfldptr(exportState, 'syyn', syyn, rc=rc)
-      if (ChkErr(rc,__LINE__,u_FILE_u)) return
-      call CalcRadstr2D( va, sxxn, sxyn, syyn)
-    end if
     if (wav_coupling_to_cice) then
       call state_getfldptr(exportState, 'Sw_elevation_spectrum', wave_elevation_spectrum, rc=rc)
       if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -969,228 +862,106 @@ contains
       end if
     endif
 
-    ! -----------------------------------------------
-    ! for time averaged otuput to CMEPS auxiliary history file(s)
-    ! -----------------------------------------------
-    ! Note that UNDEF is -999.9
-
-    ! surface stokes drift
-    if (state_fldchk(exportState, 'Sw_ustokes_avg')) then
-       call state_getfldptr(exportState, 'Sw_ustokes_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_ustokes_avg, accum_ustokes_avg, sec_next, fillvalue, USSX)
+    ! coastal-coupling exports: skipped for CESM, where Sw_thm and Sw_t0m1 are
+    ! diagnostic fields filled above from the w3iogomd-computed arrays
+    if (.not. cesmcoupled) then
+    if (state_fldchk(exportState, 'Sw_hs')) then
+      call state_getfldptr(exportState, 'Sw_hs', sw_hs, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      sw_hs(:) = fillvalue
+      call CalcHS(va, sw_hs, fillvalue)
     end if
 
-    if (state_fldchk(exportState, 'Sw_vstokes_avg')) then
-       call state_getfldptr(exportState, 'Sw_vstokes_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_vstokes_avg, accum_vstokes_avg, sec_next, fillvalue, USSY)
+    if (state_fldchk(exportState, 'Sw_bhd')) then
+      call state_getfldptr(exportState, 'Sw_bhd', sw_bhd, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      sw_bhd(:) = fillvalue
+      call CalcBHD(va, sw_bhd, fillvalue)
     end if
 
-    ! Significant wave height
-    if (state_fldchk(exportState, 'Sw_hs_avg')) then
-       call state_getfldptr(exportState, 'Sw_hs_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_hs_avg, accum_hs_avg, sec_next, fillvalue, HS)
+    if ( state_fldchk(exportState, 'Sw_tauox') .and. &
+         state_fldchk(exportState, 'Sw_tauoy') )then
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call state_getfldptr(exportState, 'Sw_tauox', sw_tauox, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call state_getfldptr(exportState, 'Sw_tauoy', sw_tauoy, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      sw_tauox(:) = fillvalue
+      sw_tauoy(:) = fillvalue
+      do jsea=1, nseal_cpl
+        call init_get_isea(isea, jsea)
+        ix  = mapsf(isea,1)
+        iy  = mapsf(isea,2)
+        if (mapsta(iy,ix) == 1) then
+          sw_tauox(jsea) = tauox(jsea)
+          sw_tauoy(jsea) = tauoy(jsea)
+        endif
+      enddo
     end if
 
-    ! Wind Sea siginificant wave height = Partition 0 of HS
-    if (state_fldchk(exportState, 'Sw_phs0_avg')) then
-       call state_getfldptr(exportState, 'Sw_phs0_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulatehs(dataptr, counter_phs0_avg, accum_phs0_avg, sec_next, fillvalue, PHS(:,0))
+    if ( state_fldchk(exportState, 'Sw_ubrx') .and. &
+         state_fldchk(exportState, 'Sw_ubry') )then
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call state_getfldptr(exportState, 'Sw_ubrx', sw_ubrx, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call state_getfldptr(exportState, 'Sw_ubry', sw_ubry, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call CalcUVBed(va, sw_ubrx, sw_ubry, fillvalue)
+   end if
+
+    if (state_fldchk(exportState, 'Sw_thm')) then
+     call state_getfldptr(exportState, 'Sw_thm', sw_thm, rc=rc)
+     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+     call CalcTHM(va, sw_thm, fillvalue)
     end if
 
-    ! Swell siginificant wave height = Partition 1 of HS if NOSWLL=1
-    if (state_fldchk(exportState, 'Sw_phs1_avg')) then
-       call state_getfldptr(exportState, 'Sw_phs1_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulatehs(dataptr, counter_phs1_avg, accum_phs1_avg, sec_next, fillvalue, PHS(:,1))
+    if (state_fldchk(exportState, 'Sw_t0m1')) then
+      call state_getfldptr(exportState, 'Sw_t0m1', sw_t0m1, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call CalcT0M1(va, sw_t0m1, fillvalue)
     end if
 
-    ! Wind sea mean direction = Partition 0 of DIR
-    if (state_fldchk(exportState, 'Sw_pdir0_avg')) then
-       call state_getfldptr(exportState, 'Sw_pdir0_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulateangle(dataptr, counter_pdir0_avg, accum_xpdir0_avg,  accum_ypdir0_avg, sec_next, fillvalue, PDIR(:,0))
+    if (state_fldchk(exportState, 'Sw_wnmean')) then
+      call state_getfldptr(exportState, 'Sw_wnmean', sw_wnmean, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      sw_wnmean(:) = fillvalue
+      do jsea=1, nseal_cpl
+        call init_get_isea(isea, jsea)
+        ix  = mapsf(isea,1)
+        iy  = mapsf(isea,2)
+        if (mapsta(iy,ix) == 1) then
+          sw_wnmean(jsea) = wnmean(jsea)
+        endif
+      enddo
     end if
 
-    ! Swell mean direction = Partition 1 of DIR if NOSWLL=1
-    if (state_fldchk(exportState, 'Sw_pdir1_avg')) then
-       call state_getfldptr(exportState, 'Sw_pdir1_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulateangle(dataptr, counter_pdir1_avg, accum_xpdir1_avg, accum_ypdir1_avg, sec_next, fillvalue, PDIR(:,NOSWLL))
+    if ( state_fldchk(exportState, 'Sw_taubblx') .and. &
+         state_fldchk(exportState, 'Sw_taubbly') )then
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call state_getfldptr(exportState, 'Sw_taubblx', sw_taubblx, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call state_getfldptr(exportState, 'Sw_taubbly', sw_taubbly, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      sw_taubblx(:) = fillvalue
+      sw_taubbly(:) = fillvalue
+      do jsea=1, nseal_cpl
+        call init_get_isea(isea, jsea)
+        ix  = mapsf(isea,1)
+        iy  = mapsf(isea,2)
+        if (mapsta(iy,ix) == 1) then
+          sw_taubblx(jsea) = taubbl(jsea,1)
+          sw_taubbly(jsea) = taubbl(jsea,2)
+        endif
+      enddo
     end if
-
-    ! Wind sea first moment period
-    if (state_fldchk(exportState, 'Sw_pTm10_avg')) then
-       call state_getfldptr(exportState, 'Sw_pTm10_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_pTm10_avg, accum_pTm10_avg, sec_next, fillvalue, PT1(:,0))
-    end if
-
-    ! Swell first moment period, if NOSWLL=1
-    if (state_fldchk(exportState, 'Sw_pTm11_avg')) then
-       call state_getfldptr(exportState, 'Sw_pTm11_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_pTm11_avg, accum_pTm11_avg, sec_next, fillvalue, PT1(:,NOSWLL))
-    end if
-
-    ! Mean first moment period
-    if (state_fldchk(exportState, 'Sw_Tm1_avg')) then
-       call state_getfldptr(exportState, 'Sw_Tm1_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_Tm1_avg, accum_Tm1_avg, sec_next, fillvalue, T01)
-    end if
-
-    ! Mean wave direction
-    if (state_fldchk(exportState, 'Sw_thm_avg')) then
-       call state_getfldptr(exportState, 'Sw_thm_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulateangle(dataptr, counter_thm_avg, accum_xthm_avg, accum_ythm_avg, sec_next, fillvalue, THM)
-    end if
-
-    ! Peak direction
-    if (state_fldchk(exportState, 'Sw_thp0_avg')) then
-       call state_getfldptr(exportState, 'Sw_thp0_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-   !   call accumulate(dataptr, counter_thp0_avg, accum_thp0_avg, sec_next, fillvalue, THP0)
-       call accumulateangle(dataptr, counter_thp0_avg, accum_xthp0_avg, accum_ythp0_avg, sec_next, fillvalue, THP0)
-    end if
-
-    !  Wind to wave energy flux W/m3
-    if (state_fldchk(exportState, 'Sw_faw_avg')) then
-       call state_getfldptr(exportState, 'Sw_faw_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_faw_avg, accum_faw_avg, sec_next, fillvalue, PHIAW)
-    end if
-
-    ! Peak frequency
-    if (state_fldchk(exportState, 'Sw_fp0_avg')) then
-       call state_getfldptr(exportState, 'Sw_fp0_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_fp0_avg, accum_fp0_avg, sec_next, fillvalue, FP0)
-    end if
-
-    ! Input zonal wind
-    if (state_fldchk(exportState, 'Sw_u_avg') .and. state_fldchk(importState, 'Sa_u10m')) then
-       call state_getfldptr(exportState, 'Sw_u_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getfldptr(importState, 'Sa_u10m', sa_u, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_u_avg, accum_u_avg, sec_next, fillvalue, real(sa_u))
-    end if
-
-    ! Input meridional wind
-    if (state_fldchk(exportState, 'Sw_v_avg') .and. state_fldchk(importState, 'Sa_v10m')) then
-       call state_getfldptr(exportState, 'Sw_v_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getfldptr(importState, 'Sa_v10m', sa_v, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_v_avg, accum_v_avg, sec_next, fillvalue, real(sa_v))
-    end if
-
-
-    ! zonal surface ocean current from the ocean model
-    if (state_fldchk(exportState, 'Sw_cu_avg') .and. state_fldchk(importState, 'So_u')) then
-       call state_getfldptr(exportState, 'Sw_cu_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getfldptr(importState, 'So_u', so_u, rc=rc)
-       call accumulate(dataptr, counter_cu_avg, accum_cu_avg, sec_next, fillvalue, real(so_u))
-    end if
-
-    ! meridional surface ocean current from the ocean model
-    if (state_fldchk(exportState, 'Sw_cv_avg') .and. state_fldchk(importState, 'So_v')) then
-       call state_getfldptr(exportState, 'Sw_cv_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getfldptr(importState, 'So_v', so_v, rc=rc)
-       call accumulate(dataptr, counter_cv_avg, accum_cv_avg, sec_next, fillvalue, real(so_v))
-    end if
-
-    ! Stokes transport u component
-    if (state_fldchk(exportState, 'Sw_tusx_avg')) then
-       if (.not. allocated(counter_tusx_avg)) then
-          allocate(counter_tusx_avg(nseal_cpl))
-          counter_tusx_avg(:) = 0
-          allocate(accum_tusx_avg(nseal_cpl))
-          accum_tusx_avg(:) = 0._r8
-       end if
-       call state_getfldptr(exportState, 'Sw_tusx_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_tusx_avg, accum_tusx_avg, sec_next, fillvalue, TUSX)
-    end if
-
-    ! Stokes transport v component
-    if (state_fldchk(exportState, 'Sw_tusy_avg')) then
-       call state_getfldptr(exportState, 'Sw_tusy_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_tusy_avg, accum_tusy_avg, sec_next, fillvalue, TUSY)
-    end if
-
-    ! Langmuir number
-     if (state_fldchk(exportState, 'Sw_lamult_avg')) then
-       call state_getfldptr(exportState, 'Sw_lamult_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_lamult_avg, accum_lamult_avg, sec_next, fillvalue, real(sw_lamult))
-    end if
-
-    ! Charnock parameter for air-sea friction (dimensionless)
-     if (state_fldchk(exportState, 'Sw_charn_avg')) then
-       call state_getfldptr(exportState, 'Sw_charn_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_charn_avg, accum_charn_avg, sec_next, fillvalue, charn)
-    end if
-
-    ! Mean second  moment period s
-    if (state_fldchk(exportState, 'Sw_tm02_avg')) then
-       call state_getfldptr(exportState, 'Sw_tm02_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_tm02_avg, accum_tm02_avg, sec_next, fillvalue, T02)
-    end if
-
-   ! Wave to ocean energy flux W/m3
-    if (state_fldchk(exportState, 'Sw_foc_avg')) then
-       call state_getfldptr(exportState, 'Sw_foc_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_foc_avg, accum_foc_avg, sec_next, fillvalue, PHIOC)
-    end if
-
-    ! sea ice fraction coming from the ice model and not from the wave model
-    if (state_fldchk(exportState, 'Sw_ifrac_avg') .and. state_fldchk(importState, 'Si_ifrac')) then
-       call state_getfldptr(exportState, 'Sw_ifrac_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getfldptr(importState, 'Si_ifrac', si_ifrac, rc=rc)
-       call accumulate(dataptr, counter_ifrac_avg, accum_ifrac_avg, sec_next, fillvalue, real(si_ifrac))
-    end if
-
-    ! sea ice thickness coming from the ice model and not from the wave model
-    if (state_fldchk(exportState, 'Sw_thick_avg') .and. state_fldchk(importState, 'Si_thick')) then
-       call state_getfldptr(exportState, 'Sw_thick_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call state_getfldptr(importState, 'Si_thick', si_thick, rc=rc)
-       call accumulate(dataptr, counter_thick_avg, accum_thick_avg, sec_next, fillvalue, real(si_thick))
-    end if
-
-    ! Wave to ice stress x component
-        if (state_fldchk(exportState, 'Sw_tauicex_avg')) then
-       call state_getfldptr(exportState, 'Sw_tauicex_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_tauicex_avg, accum_tauicex_avg, sec_next, fillvalue, TAUICE(:,1))
-    end if
-
-    ! Wave to ice stress y component
-        if (state_fldchk(exportState, 'Sw_tauicey_avg')) then
-       call state_getfldptr(exportState, 'Sw_tauicey_avg', dataptr, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       call accumulate(dataptr, counter_tauicey_avg, accum_tauicey_avg, sec_next, fillvalue, TAUICE(:,2))
-    end if
+    end if ! .not. cesmcoupled
 
     if (dbug_flag > 5) then
-       call state_diagnose(exportState, 'at export ', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call state_diagnose(exportState, 'at export ', rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
     end if
 
- end subroutine export_fields
+  end subroutine export_fields
 
   !===============================================================================
   !> Add a fieldname to a list of fields in a state
@@ -1272,7 +1043,7 @@ contains
     if (dbug_flag > 5) call ESMF_LogWrite(trim(subname)//' called', ESMF_LOGMSG_INFO)
 
     do n = 1, numflds
-      stdname = fldList(n)%stdname
+      stdname = trim(fldList(n)%stdname)
       if (NUOPC_IsConnected(state, fieldName=stdname)) then
         if (stdname == trim(flds_scalar_name)) then
           call ESMF_LogWrite(trim(subname)//trim(tag)//" Field = "//trim(stdname)//" is connected on root pe", &
@@ -1373,26 +1144,24 @@ contains
 
     ! Calculate Charnok for export
 
-    use w3gdatmd,   only : nseal, nk, nth, sig, mapsf, mapsta, nspec
+    use w3gdatmd,   only : nk, nspec
     use w3adatmd,   only : cg, wn, charn, u10, u10d
     use w3wdatmd,   only : va
-    use w3odatmd,   only : naproc, iaproc
 #ifdef W3_ST3
     use w3src3md,   only : w3spr3
 #endif
 #ifdef W3_ST4
     use w3src4md,   only : w3spr4
 #endif
-
     ! input/output variables
-    real(ESMF_KIND_R8), pointer :: chkn(:)  ! 1D Charnock export field pointer
+    real(r8), pointer :: chkn(:)  ! 1D Charnock export field pointer
 
     ! local variables
-    integer            :: isea, jsea, ix, iy
-    real               :: emean, fmean, fmean1, wnmean, amax, ustar, ustdr
-    real               :: tauwx, tauwy, cd, z0, fmeanws, dlwmean
-    logical            :: llws(nspec)
-    logical, save      :: firstCall = .true.
+    integer           :: isea, jsea
+    real              :: emean, fmean, fmean1, wnmean, amax, ustar, ustdr
+    real              :: tauwx, tauwy, cd, z0, fmeanws, dlwmean
+    logical           :: llws(nspec)
+    logical, save     :: firstCall = .true.
     !----------------------------------------------------------------------
 
     !TODO: fix firstCall like for Roughl
@@ -1433,11 +1202,10 @@ contains
   subroutine CalcRoughl ( wrln)
 
     ! Calculate wave roughness length for export
-
-    use w3gdatmd,   only : nseal, nk, nth, sig, dmin, ecos, esin, dden, mapsf, mapsta, nspec
-    use w3adatmd,   only : dw, cg, wn, charn, u10, u10d
+    use w3gdatmd,   only : nk, mapsf, mapsta, nspec
+    use w3adatmd,   only : cg, wn, charn, u10, u10d
     use w3wdatmd,   only : va, ust
-    use w3odatmd,   only : naproc, iaproc, runtype
+    use w3odatmd,   only : runtype
 #ifdef W3_ST3
     use w3src3md,   only : w3spr3
 #endif
@@ -1462,8 +1230,8 @@ contains
       ix = mapsf(isea,1)
       iy = mapsf(isea,2)
       if ( firstCall ) then
-        if (( runtype == 'initial'  .and.     mapsta(iy,ix)  == 1 ) .or. &
-            ( runtype == 'continue' .and. abs(mapsta(iy,ix)) == 1 )) then
+        if(( runtype == 'initial'  .and.     mapsta(iy,ix)  == 1 ) .or. &
+             ( runtype == 'continue' .and. abs(mapsta(iy,ix)) == 1 )) then
           charn(jsea) = zero
           llws(:) = .true.
           ustar = zero
@@ -1490,153 +1258,76 @@ contains
   end subroutine CalcRoughl
 
   !===============================================================================
-  !> Calculate wave-bottom currents for export
-  !!
-  !> @details TODO:
-  !!
-  !! @param[in] a                    input spectra
-  !! @param     wbxn                 a 1-D pointer to a field on a mesh
-  !! @param     wbyn                 a 1-D pointer to a field on a mesh
-  !! @param     wbpn                 a 1-D pointer to a field on a mesh
-  !!
-  !> @author T. J. Campbell, NRL
-  !> @date 09-Aug-2017
-  subroutine CalcBotcur ( a, wbxn, wbyn, wbpn )
-
-    ! Calculate wave-bottom currents for export
-
-    use w3gdatmd,  only : nseal, nk, nth, sig, dmin, ecos, esin, dden, mapsf, mapsta, nspec
-    use w3adatmd,  only : dw, cg, wn
-    use w3odatmd,  only : naproc, iaproc
-
-    ! input/output variables
-    real, intent(in)            :: a(nth,nk,0:nseal) ! Input spectra (in par list to change shape)
-    real(ESMF_KIND_R8), pointer :: wbxn(:)           ! eastward-component export field pointer
-    real(ESMF_KIND_R8), pointer :: wbyn(:)           ! northward-component export field pointer
-    real(ESMF_KIND_R8), pointer :: wbpn(:)           ! period export field pointer
-
-    ! local variables
-    real(8), parameter   :: half  = 0.5_r8
-    real(8), parameter   ::  one  = 1.0_r8
-    real(8), parameter   ::  two  = 2.0_r8
-    real(8), parameter   :: kdmin = 1e-7_r8
-    real(8), parameter   :: kdmax = 18.0_r8
-    integer              :: isea, jsea, ik, ith
-    real(8)              :: depth
-    real(8)              :: kd, fack, fkd, aka, akx, aky, abr, ubr, ubx, uby, dir
-    real(8), allocatable :: sig2(:)
-    !----------------------------------------------------------------------
-
-    allocate( sig2(1:nk) )
-    sig2(1:nk) = sig(1:nk)**2
-
-    wbxn(:) = zero
-    wbyn(:) = zero
-    wbpn(:) = zero
-
-    jsea_loop: do jsea = 1,nseal_cpl
-      call init_get_isea(isea, jsea)
-      if ( dw(isea).le.zero ) cycle jsea_loop
-      depth = max(dmin,dw(isea))
-      abr = zero
-      ubr = zero
-      ubx = zero
-      uby = zero
-      ik_loop: do ik = 1,nk
-        aka = zero
-        akx = zero
-        aky = zero
-        ith_loop: do ith = 1,nth
-          aka = aka + a(ith,ik,jsea)
-          akx = akx + a(ith,ik,jsea)*ecos(ith)
-          aky = aky + a(ith,ik,jsea)*esin(ith)
-        enddo ith_loop
-        fack = dden(ik)/cg(ik,isea)
-        kd = max(kdmin,min(kdmax,wn(ik,isea)*depth))
-        fkd = fack/sinh(kd)**2
-        abr = abr + aka*fkd
-        ubr = ubr + aka*sig2(ik)*fkd
-        ubx = ubx + akx*sig2(ik)*fkd
-        uby = uby + aky*sig2(ik)*fkd
-      enddo ik_loop
-      if ( abr.le.zero .or. ubr.le.zero ) cycle jsea_loop
-      abr = sqrt(two*abr)
-      ubr = sqrt(two*ubr)
-      dir = atan2(uby,ubx)
-      wbxn(jsea) = ubr*cos(dir)
-      wbyn(jsea) = ubr*sin(dir)
-      wbpn(jsea) = tpi*abr/ubr
-    enddo jsea_loop
-
-    deallocate( sig2 )
-
-  end subroutine CalcBotcur
-
-  !===============================================================================
   !> Calculate radiation stresses for export
   !!
-  !> @details TODO:
+  !> @details Calculates radiation stresses independently of w3iogomd to ensure
+  !! that export fields are updated at the coupling frequency
   !!
   !! @param[in] a                    input spectra
   !! @param     sxxn                 a 1-D pointer to a field on a mesh
   !! @param     sxyn                 a 1-D pointer to a field on a mesh
   !! @param     syyn                 a 1-D pointer to a field on a mesh
-  !!
-  !> @author T. J. Campbell, NRL
-  !> @date 09-Aug-2017
-  subroutine CalcRadstr2D ( a, sxxn, sxyn, syyn )
+  !! @param[in] fval                 fill value
+  !> @author Denise.Worthen@noaa.gov
+  !> @date 08-05-2024
+  subroutine CalcRadstr2D ( a, sxxn, sxyn, syyn, fval)
 
-    ! Calculate radiation stresses for export
-
-    use w3gdatmd,   only : nseal, nk, nth, sig, es2, esc, ec2, fte, dden
-    use w3adatmd,   only : dw, cg, wn
-    use w3odatmd,   only : naproc, iaproc
+    use w3gdatmd,   only : nseal, nk, nth, sig, es2, esc, ec2, fte, dden, mapsf, mapsta
+    use w3adatmd,   only : cg, wn
 
     ! input/output variables
-    real, intent(in)               :: a(nth,nk,0:nseal) ! Input spectra (in par list to change shape)
-    real(ESMF_KIND_R8), pointer    :: sxxn(:)           ! eastward-component export field
-    real(ESMF_KIND_R8), pointer    :: sxyn(:)           ! eastward-northward-component export field
-    real(ESMF_KIND_R8), pointer    :: syyn(:)           ! northward-component export field
+    real,                        intent(in)    :: a(nth,nk,0:nseal) ! Input spectra (in par list to change shape)
+    real(ESMF_KIND_R8),          intent(in)    :: fval
+    real(ESMF_KIND_R8), pointer, intent(inout) :: sxxn(:)           ! eastward-component export field
+    real(ESMF_KIND_R8), pointer, intent(inout) :: sxyn(:)           ! eastward-northward-component export field
+    real(ESMF_KIND_R8), pointer, intent(inout) :: syyn(:)           ! northward-component export field
 
     ! local variables
-    character(ESMF_MAXSTR) :: cname
-    character(128)         :: msg
-    real(8), parameter     :: half  = 0.5
-    real(8), parameter     ::  one  = 1.0
-    real(8), parameter     ::  two  = 2.0
-    integer                :: isea, jsea, ik, ith
-    real(8)                :: sxxs, sxys, syys
-    real(8)                :: akxx, akxy, akyy, cgoc, facd, fack, facs
-    !----------------------------------------------------------------------
+    integer :: isea, jsea, ik, ith, ix, iy
+    real    :: factor, abxx, abyy, abxy, sxx1, syy1, sxy1
 
-    facd = dwat*grav
-    jsea_loop: do jsea = 1,nseal_cpl
+    do jsea = 1,nseal_cpl
       call init_get_isea(isea, jsea)
-      if ( dw(isea).le.zero ) cycle jsea_loop
-      sxxs = zero
-      sxys = zero
-      syys = zero
-      ik_loop: do ik = 1,nk
-        akxx = zero
-        akxy = zero
-        akyy = zero
-        cgoc = cg(ik,isea)*wn(ik,isea)/sig(ik)
-        cgoc = min(one,max(half,cgoc))
-        ith_loop: do ith = 1,nth
-          akxx = akxx + (cgoc*(ec2(ith)+one)-half)*a(ith,ik,jsea)
-          akxy = akxy + cgoc*esc(ith)*a(ith,ik,jsea)
-          akyy = akyy + (cgoc*(es2(ith)+one)-half)*a(ith,ik,jsea)
-        enddo ith_loop
-        fack = dden(ik)/cg(ik,isea)
-        sxxs = sxxs + akxx*fack
-        sxys = sxys + akxy*fack
-        syys = syys + akyy*fack
-      enddo ik_loop
-      facs = (one+fte/cg(nk,isea))*facd
-      sxxn(jsea) = sxxs*facs
-      sxyn(jsea) = sxys*facs
-      syyn(jsea) = syys*facs
-    enddo jsea_loop
+      ix  = mapsf(isea,1)                   ! global ix
+      iy  = mapsf(isea,2)                   ! global iy
+      if (mapsta(iy,ix) == 1) then          ! active sea point
+        sxx1 = 0.0
+        syy1 = 0.0
+        sxy1 = 0.0
+        do ik = 1,nk
+          factor = max ( 0.5, cg(ik,isea)/sig(ik)*wn(ik,isea) )
+          abxx = 0.0
+          abyy = 0.0
+          abxy = 0.0
+          do ith = 1,nth
+            abxx = abxx + ((1.0 + ec2(ith))*factor-0.5) * a(ith,ik,jsea)
+            abyy = abyy + ((1.0 + es2(ith))*factor-0.5) * a(ith,ik,jsea)
+            abxy = abxy + esc(ith)* factor * a(ith,ik,jsea)
+          end do
+
+          factor = dden(ik) / cg(ik,isea)
+          abxx = max ( 0.0, abxx ) * factor
+          abyy = max ( 0.0, abyy ) * factor
+          abxy = abxy * factor
+
+          sxx1 = sxx1 + abxx
+          syy1 = syy1 + abyy
+          sxy1 = sxy1 + abxy
+        end do !ik
+        sxx1 = sxx1 + fte * abxx/cg(nk,isea)
+        syy1 = syy1 + fte * abyy/cg(nk,isea)
+        sxy1 = sxy1 + fte * abxy/cg(nk,isea)
+      end if
+      if (mapsta(iy,ix) == 1) then          ! active sea point
+        sxxn(jsea) = sxx1*dwat*grav
+        syyn(jsea) = syy1*dwat*grav
+        sxyn(jsea) = sxy1*dwat*grav
+      else
+        sxxn(jsea) = fval
+        syyn(jsea) = fval
+        sxyn(jsea) = fval
+      end if
+    end do
 
   end subroutine CalcRadstr2D
 
@@ -1655,12 +1346,12 @@ contains
 
     use constants, only : tpi
     use w3gdatmd,  only : nth, nk, nseal, mapsf, mapsta, dden, dsii
-    use w3adatmd,  only : nsealm, cg
+    use w3adatmd,  only : cg
     use w3parall,  only : init_get_isea
 
     ! input/output variables
-    real, intent(in)     :: a(nth,nk,0:nseal)
-    real(r8), pointer    :: wave_elevation_spectrum(:,:)
+    real, intent(in)               :: a(nth,nk,0:nseal)
+    real(ESMF_KIND_R8), pointer    :: wave_elevation_spectrum(:,:)
 
     ! local variables
     real    :: ab(nseal)
@@ -1692,6 +1383,374 @@ contains
 
   end subroutine CalcEF
 
+  !===============================================================================
+  !> Calculate significant wave height for export
+  !!
+  !> @details Calculates significant wave height independently of w3iogomd to ensure
+  !! that exported HS field is updated at the coupling frequency
+  !!
+  !! @param[in]    a      input spectra
+  !! @param[inout] hs     a 1-D pointer to a field on a mesh
+  !!
+  !> @author Denise.Worthen@noaa.gov
+  !> @date 8-02-2024
+  subroutine CalcHS (a, hs, fval)
+
+    use constants, only : tpi
+    use w3gdatmd,  only : nth, nk, nseal, mapsf, mapsta, dden, fte
+    use w3adatmd,  only : cg
+    use w3parall,  only : init_get_isea
+
+    ! input/output variables
+    real,                        intent(in)    :: a(nth,nk,0:nseal)
+    real(ESMF_KIND_R8),          intent(in)    :: fval
+    real(ESMF_KIND_R8), pointer, intent(inout) :: hs(:)
+
+    ! local variables
+    real    :: factor, eband, ab, et
+    integer :: ik, ith, isea, jsea, ix, iy
+
+    do jsea = 1,nseal_cpl
+      call init_get_isea(isea, jsea)
+      ix  = mapsf(isea,1)                   ! global ix
+      iy  = mapsf(isea,2)                   ! global iy
+      if (mapsta(iy,ix) == 1) then          ! active sea point
+        et = 0.0
+        do ik = 1,nk
+          factor = dden(ik) / cg(ik,isea)
+          ab = 0.0
+          do ith = 1,nth
+            ab = ab + a(ith,ik,jsea)
+          end do
+          et = et + ab*factor
+        end do !ik
+        eband = ab/cg(nk,isea)
+        et = et + fte*eband
+#ifdef W3_O9
+        if ( et .ge. 0.0 ) then
+          hs(jsea) =  4.0*sqrt ( et )
+        else
+          hs(jsea) = -4.0*sqrt ( -et )
+        end if
+#else
+        hs(jsea) = 4.0*sqrt ( et )
+#endif
+      else
+        hs(jsea) = fval
+      end if
+    end do
+  end subroutine CalcHS
+
+  !===============================================================================
+  !> Calculate Bernoulli head pressure for export
+  !!
+  !> @details Calculates Bernoulli head pressure independently of w3iogomd to ensure
+  !! that exported BHD field is updated at the coupling frequency
+  !!
+  !! @param[in]    a       input spectra
+  !! @param[in]    fval    fillvalue
+  !! @param[inout] bhd     a 1-D pointer to a field on a mesh
+  !!
+  !> @author Denise.Worthen@noaa.gov
+  !> @date 8-02-2024
+  subroutine CalcBHD (a, bhd, fval)
+
+    use w3gdatmd,  only : nth, nk, nseal, mapsf, mapsta, dden
+    use w3adatmd,  only : dw, cg, wn
+    use w3parall,  only : init_get_isea
+
+    ! input/output variables
+    real,                        intent(in)    :: a(nth,nk,0:nseal)
+    real(ESMF_KIND_R8),          intent(in)    :: fval
+    real(ESMF_KIND_R8), pointer, intent(inout) :: bhd(:)
+
+    ! local variables
+    real    :: factor, kd, ab, ebd, bhd1
+    integer :: ik, ith, isea, jsea, ix, iy
+
+    do jsea = 1,nseal_cpl
+      call init_get_isea(isea, jsea)
+      ix  = mapsf(isea,1)                   ! global ix
+      iy  = mapsf(isea,2)                   ! global iy
+      if (mapsta(iy,ix) == 1) then          ! active sea point
+        ebd = 0.0
+        bhd1 = 0.0
+        do ik = 1,nk
+          factor = dden(ik) / cg(ik,isea)
+          ab = 0.0
+          do ith = 1,nth
+            ab = ab + a(ith,ik,jsea)
+          end do
+          ebd = ab*factor
+          kd = max ( 0.001 , wn(ik,isea) * dw(isea) )
+          if (kd .lt. 6.0) then
+            bhd1 = bhd1 + grav*wn(ik,isea) * ebd / (sinh(2.*kd))
+          end if
+        end do !ik
+        bhd(jsea) = bhd1
+      else
+        bhd(jsea) = fval
+      end if
+    end do
+
+  end subroutine CalcBHD
+
+  !====================================================================================
+  !> Calculate Stokes drift for export
+  !!
+  !> @details Calculates Stokes drift independently of w3iogomd to ensure
+  !! that exported USSX and USSY fields are updated at the coupling frequency
+  !!
+  !! @param[in]    a       input spectra
+  !! @param[in]    fval    fill value
+  !! @param[inout] us      a 1-D pointer to a field on a mesh
+  !! @param[inout] vs      a 1-D pointer to a field on a mesh
+  !!
+  !> @author Denise.Worthen@noaa.gov
+  !> @date 8-02-2024
+  subroutine CalcStokes(a, us, vs, fval)
+
+    use w3gdatmd,  only : nth, nk, nseal, mapsf, mapsta, dden, ecos, esin
+    use w3adatmd,  only : dw, cg, wn
+    use w3gdatmd,  only : sig
+    use w3parall,  only : init_get_isea
+
+    ! input/output variables
+    real,                        intent(in)    :: a(nth,nk,0:nseal)
+    real(ESMF_KIND_R8),          intent(in)    :: fval
+    real(ESMF_KIND_R8), pointer, intent(inout) :: us(:), vs(:)
+
+    ! local variables
+    real    :: factor, kd, abx, aby, fkd, ussco, us1, vs1
+    integer :: ik, ith, isea, jsea, ix, iy
+
+    do jsea = 1,nseal_cpl
+      call init_get_isea(isea, jsea)
+      ix  = mapsf(isea,1)                   ! global ix
+      iy  = mapsf(isea,2)                   ! global iy
+      if (mapsta(iy,ix) == 1) then          ! active sea point
+        us1 = 0.0
+        vs1 = 0.0
+        do ik = 1,nk
+          factor = dden(ik) / cg(ik,isea)
+          abx = 0.0
+          aby = 0.0
+          do ith = 1,nth
+            abx = abx + a(ith,ik,jsea)*ecos(ith)
+            aby = aby + a(ith,ik,jsea)*esin(ith)
+          end do
+          kd = max ( 0.001 , wn(ik,isea) * dw(isea) )
+          if (kd .lt. 6.0) then
+            fkd =  factor / sinh(kd)**2
+            ussco = fkd*sig(ik)*wn(ik,isea)*cosh(2.0*kd)
+          else
+            ussco = factor*sig(ik)*2.0*wn(ik,isea)
+          end if
+          us1 = us1 + abx*ussco
+          vs1 = vs1 + aby*ussco
+        end do !ik
+        us(jsea) = us1
+        vs(jsea) = vs1
+      else
+        us(jsea) = fval
+        vs(jsea) = fval
+      end if
+    end do
+
+  end subroutine CalcStokes
+
+  !====================================================================================
+  !> Calculate UVBed drift for export
+  !!
+  !> @details Calculates near bed orbital velocities independently of w3iogomd to
+  !! ensure that exported UBRX and UBRY fields are updated at the coupling frequency
+  !!
+  !! @param[in]    a       input spectra
+  !! @param[in]    fval    fill value
+  !! @param[inout] ubrx    a 1-D pointer to a field on a mesh
+  !! @param[inout] vbry    a 1-D pointer to a field on a mesh
+  !!
+  !> @author Denise.Worthen@noaa.gov
+  !> @date 8-02-2024
+  subroutine CalcUVBed(a, ubrx, ubry, fval)
+
+    use w3gdatmd,  only : nth, nk, nseal, mapsf, mapsta, dden, ecos, esin
+    use w3adatmd,  only : dw, cg, wn
+    use w3gdatmd,  only : sig
+    use w3parall,  only : init_get_isea
+
+    ! input/output variables
+    real,                        intent(in)    :: a(nth,nk,0:nseal)
+    real(ESMF_KIND_R8),          intent(in)    :: fval
+    real(ESMF_KIND_R8), pointer, intent(inout) :: ubrx(:), ubry(:)
+
+    ! local variables
+    real    :: factor, kd, ab, abx, aby, fkd, uba1, ubd1, ubr1
+    integer :: ik, ith, isea, jsea, ix, iy
+
+    do jsea = 1,nseal_cpl
+      call init_get_isea(isea, jsea)
+      ix  = mapsf(isea,1)                   ! global ix
+      iy  = mapsf(isea,2)                   ! global iy
+      if (mapsta(iy,ix) == 1) then          ! active sea point
+        uba1 = 0.0
+        ubd1 = 0.0
+        ubr1 = 0.0
+        do ik = 1,nk
+          factor = dden(ik) / cg(ik,isea)
+          ab = 0.0
+          abx = 0.0
+          aby = 0.0
+          do ith = 1,nth
+            ab  = ab  + a(ith,ik,jsea)
+            abx = abx + a(ith,ik,jsea)*ecos(ith)
+            aby = aby + a(ith,ik,jsea)*esin(ith)
+          end do
+          kd = max ( 0.001 , wn(ik,isea) * dw(isea) )
+          if (kd .lt. 6.0) then
+            fkd =  factor / sinh(kd)**2
+            ubr1 = ubr1 + ab*sig(ik)**2 * fkd
+            uba1 = uba1 + abx*sig(ik)**2 * fkd
+            ubd1 = ubd1 + aby*sig(ik)**2 * fkd
+          end if
+        end do !ik
+        ubr1 = sqrt(2.0*max(0.0,ubr1))
+        if (ubr1 .ge. 1.0e-7) then
+          ubd1 = atan2(ubd1,uba1)
+        else
+          ubd1 = 0.0
+        end if
+        uba1 = ubr1
+        ubrx(jsea) = uba1*cos(ubd1)
+        ubry(jsea) = uba1*sin(ubd1)
+      else
+        ubrx(jsea) = fval
+        ubry(jsea) = fval
+      end if
+    end do
+
+  end subroutine CalcUVBed
+
+  !===============================================================================
+  !> Calculate mean wave direction for export
+  !!
+  !> @details Calculates mean wave direction independently of w3iogomd to ensure
+  !! that exported THM field is updated at the coupling frequency
+  !!
+  !! @param[in]    a       input spectra
+  !! @param[inout] thm     a 1-D pointer to a field on a mesh
+  !!
+  !> @author Denise.Worthen@noaa.gov
+  !> @date 8-02-2024
+  subroutine CalcTHM (a, thm, fval)
+
+    use constants, only : rade
+    use w3gdatmd,  only : nth, nk, nseal, mapsf, mapsta, dden, fte, ecos, esin
+    use w3adatmd,  only : cg
+    use w3parall,  only : init_get_isea
+
+    ! input/output variables
+    real,                        intent(in)    :: a(nth,nk,0:nseal)
+    real(ESMF_KIND_R8),          intent(in)    :: fval
+    real(ESMF_KIND_R8), pointer, intent(inout) :: thm(:)
+
+    ! local variables
+    real    :: factor, abx, aby, etx, ety
+    integer :: ik, ith, isea, jsea, ix, iy
+
+    do jsea = 1,nseal_cpl
+      call init_get_isea(isea, jsea)
+      ix  = mapsf(isea,1)                   ! global ix
+      iy  = mapsf(isea,2)                   ! global iy
+      if (mapsta(iy,ix) == 1) then          ! active sea point
+        etx = 0.0
+        ety = 0.0
+        do ik = 1,nk
+          factor = dden(ik) / cg(ik,isea)
+          abx = 0.0
+          aby = 0.0
+          do ith = 1,nth
+            abx = abx + a(ith,ik,jsea)*ecos(ith)
+            aby = aby + a(ith,ik,jsea)*esin(ith)
+          end do
+          etx = etx + abx*factor
+          ety = ety + aby*factor
+        end do !ik
+        etx = etx + fte * abx/cg(nk,isea)
+        ety = ety + fte * aby/cg(nk,isea)
+        if ( abs(etx) + abs(ety) .gt. 1.e-7 ) then
+          thm(jsea) = atan2(ety,etx)
+        else
+          thm(jsea) = 0.0
+        end if
+        ! convert to degrees
+        thm(jsea) = mod(630.0 - rade*thm(jsea), 360.0)
+      else
+        thm(jsea) = fval
+      end if
+    end do
+
+  end subroutine CalcTHM
+
+  !===============================================================================
+  !> Calculate mean wave direction for export
+  !!
+  !> @details Calculates mean wave period independently of w3iogomd to ensure
+  !! that exported T0M1 field is updated at the coupling frequency
+  !!
+  !! @param[in]    a       input spectra
+  !! @param[inout] thm     a 1-D pointer to a field on a mesh
+  !!
+  !> @author Denise.Worthen@noaa.gov
+  !> @date 8-02-2024
+  subroutine CalcT0M1 (a, t0m1, fval)
+
+    use constants, only : tpi
+    use w3gdatmd,  only : nth, nk, nseal, mapsf, mapsta, dden, fte, fttr, sig
+    use w3adatmd,  only : cg
+    use w3parall,  only : init_get_isea
+
+    ! input/output variables
+    real,                        intent(in)    :: a(nth,nk,0:nseal)
+    real(ESMF_KIND_R8),          intent(in)    :: fval
+    real(ESMF_KIND_R8), pointer, intent(inout) :: t0m1(:)
+
+    ! local variables
+    real    :: factor, eband, ab, et, ebd, etr
+    integer :: ik, ith, isea, jsea, ix, iy
+
+    do jsea = 1,nseal_cpl
+      call init_get_isea(isea, jsea)
+      ix  = mapsf(isea,1)                   ! global ix
+      iy  = mapsf(isea,2)                   ! global iy
+      if (mapsta(iy,ix) == 1) then          ! active sea point
+        etr = 0.0
+        et = 0.0
+        do ik = 1,nk
+          factor = dden(ik) / cg(ik,isea)
+          ab = 0.0
+          do ith = 1,nth
+            ab = ab + a(ith,ik,jsea)
+          end do
+          ebd = ab*factor
+          et = et + ebd
+          etr = etr + ebd/sig(ik)
+        end do !ik
+        eband = ab/cg(nk,isea)
+        et = et + fte*eband
+        etr = etr + fttr*eband
+        if (et .gt. 1.0e-7) then
+          t0m1(jsea) = etr/et * tpi
+        else
+          t0m1(jsea) = tpi/sig(nk)
+        end if
+      else
+        t0m1(jsea) = fval
+      end if
+    end do
+
+  end subroutine CalcT0M1
+
   !====================================================================================
   !> Create a global field across all PEs
   !!
@@ -1708,8 +1767,7 @@ contains
   !> @date 01-05-2022
   subroutine SetGlobalInput(importState, fldname, vm, global_output, rc)
 
-    use w3gdatmd, only: nsea, nseal, nx, ny
-    use w3odatmd, only: naproc, iaproc
+    use w3gdatmd, only: nsea
 
     ! input/output variables
     type(ESMF_State) , intent(in)  :: importState
@@ -1719,7 +1777,7 @@ contains
     integer          , intent(out) :: rc
 
     ! local variables
-    integer           :: jsea, isea, ix, iy
+    integer           :: jsea, isea
     real(r4)          :: global_input(nsea)
     real(r8), pointer :: dataptr(:)
     character(len=*), parameter :: subname = '(wav_import_export:setGlobalInput)'
@@ -1827,7 +1885,7 @@ contains
   !> @date 01-05-2022
   subroutine set_importmask(importState, clock, fldname, vm, rc)
 
-    use w3gdatmd, only: nsea, nseal, nx, ny
+    use w3gdatmd, only: nsea, nseal
     use w3odatmd, only: naproc, iaproc
 
     ! input/output variables
@@ -1842,7 +1900,7 @@ contains
     type(ESMF_TimeInterval) :: timeStep
     logical                 :: firstCall, secondCall
     real(r4)                :: fillValue = 9.99e20
-    integer                 :: isea, jsea, ix, iy
+    integer                 :: isea, jsea
     real(r8), pointer       :: dataptr(:)
     real(r4)                :: mask_local(nsea)
     character(len=CL)       :: msgString
@@ -1922,7 +1980,7 @@ contains
   !> @date 01-05-2022
   subroutine check_globaldata(gcomp, fldname, global_data, nvals, rc)
 
-    use w3gdatmd, only: nseal, nsea, mapsf, nx, ny
+    use w3gdatmd, only: nseal, mapsf, nx, ny
     use w3odatmd, only: naproc, iaproc
 
     ! input/output variables
@@ -1935,7 +1993,7 @@ contains
     ! local variables
     type(ESMF_Clock)                :: clock
     type(ESMF_State)                :: importState
-    type(ESMF_Time)                 :: currtime, nexttime
+    type(ESMF_Time)                 :: nexttime
     type(ESMF_Field)                :: lfield
     type(ESMF_Field)                :: newfield
     type(ESMF_MeshLoc)              :: meshloc
@@ -1943,7 +2001,6 @@ contains
     character(len=CS)               :: timestr
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
     integer                         :: fieldCount
-    integer                         :: lrank
     integer                         :: yr,mon,day,sec    ! time units
     integer                         :: jsea, isea, ix, iy
     real(r8), pointer               :: dataptr1d(:)
@@ -2104,165 +2161,4 @@ contains
     if (dbug_flag > 5) call ESMF_LogWrite(trim(subname)//' done', ESMF_LOGMSG_INFO)
 
   end subroutine readfromfile
-
-  !========================================================================
-  subroutine accumulate(dataptr, counter, accum, sec_next, fillvalue, ww3data)
-
-     use w3gdatmd  , only : mapsf
-     use w3gdatmd  , only : mapsta
-     use constants , only : UNDEF
-
-    ! input/output variables
-     real(r8)              , intent(inout) :: dataptr(:)
-     integer , allocatable , intent(inout) :: counter(:)
-     real(r8), allocatable , intent(inout) :: accum(:)
-     integer               , intent(in)    :: sec_next
-     real(r8)              , intent(in)    :: fillvalue
-     real                  , intent(in)    :: ww3data(:)
-
-     ! local variables
-     integer :: isea, jsea
-     integer :: ix, iy
-     !---------------------------------------------------------------------------
-
-     if (.not. allocated(counter)) then
-        allocate(counter(nseal_cpl))
-        counter(:) = 0
-        allocate(accum(nseal_cpl))
-        accum(:) = 0._r8
-     end if
-
-     dataptr(:) = fillvalue
-     do jsea=1, nseal_cpl
-        call init_get_isea(isea, jsea)
-        ix = mapsf(isea,1)
-        iy = mapsf(isea,2)
-        if (mapsta(iy,ix) == 1) then
-           if (ww3data(jsea) /= UNDEF) then
-              counter(jsea) = counter(jsea) + 1
-              accum(jsea) = accum(jsea) + ww3data(jsea)
-           end if
-           if (sec_next == 0) then
-              if (counter(jsea) /= 0) then
-                 dataptr(jsea) = accum(jsea) / counter(jsea)
-              end if
-              counter(jsea) = 0
-              accum(jsea) = 0._r8
-           end if
-        else
-           dataptr(jsea) = 0.
-        endif
-     enddo
-  end subroutine accumulate
-
- !========================================================================
-
-  subroutine accumulatehs(dataptr, counter, accum, sec_next, fillvalue, ww3data)
-
-     use w3gdatmd  , only : mapsf
-     use w3gdatmd  , only : mapsta
-     use constants , only : UNDEF
-
-    ! input/output variables
-     real(r8)              , intent(inout) :: dataptr(:)
-     integer , allocatable , intent(inout) :: counter(:)
-     real(r8), allocatable , intent(inout) :: accum(:)
-     integer               , intent(in)    :: sec_next
-     real(r8)              , intent(in)    :: fillvalue
-     real                  , intent(in)    :: ww3data(:)
-
-     ! local variables
-     integer :: isea, jsea
-     integer :: ix, iy
-     !---------------------------------------------------------------------------
-
-     if (.not. allocated(counter)) then
-        allocate(counter(nseal_cpl))
-        counter(:) = 0
-        allocate(accum(nseal_cpl))
-        accum(:) = 0._r8
-     end if
-
-     dataptr(:) = fillvalue
-     do jsea=1, nseal_cpl
-        call init_get_isea(isea, jsea)
-        ix = mapsf(isea,1)
-        iy = mapsf(isea,2)
-        if (mapsta(iy,ix) == 1) then
-           if (ww3data(jsea) /= UNDEF) then
-              counter(jsea) = counter(jsea) + 1
-              accum(jsea) = accum(jsea) + ww3data(jsea)
-           end if
-           if (sec_next == 0) then
-              if (counter(jsea) /= 0) then
-                 dataptr(jsea) = accum(jsea) / counter(jsea)
-              else
-                 dataptr(jsea) = 0
-              end if
-              counter(jsea) = 0
-              accum(jsea) = 0._r8
-           end if
-        else
-           dataptr(jsea) = 0.
-        endif
-     enddo
-   end subroutine accumulatehs
-
-   !========================================================================
-   subroutine accumulateangle(dataptr, counter, xaccum, yaccum, sec_next, fillvalue, ww3data)
-
-     use w3gdatmd  , only : mapsf
-     use w3gdatmd  , only : mapsta
-     use constants , only : UNDEF
-
-    ! input/output variables
-     real(r8)              , intent(inout) :: dataptr(:)
-     integer , allocatable , intent(inout) :: counter(:)
-     real(r8), allocatable , intent(inout) :: xaccum(:)
-     real(r8), allocatable , intent(inout) :: yaccum(:)
-     integer               , intent(in)    :: sec_next
-     real(r8)              , intent(in)    :: fillvalue
-     real                  , intent(in)    :: ww3data(:)
-
-
-     ! local variables
-     integer :: isea, jsea
-     integer :: ix, iy
-     !---------------------------------------------------------------------------
-
-     if (.not. allocated(counter)) then
-        allocate(counter(nseal_cpl))
-        counter(:) = 0
-        allocate(xaccum(nseal_cpl))
-        allocate(yaccum(nseal_cpl))
-        xaccum(:) = 0._r8
-        yaccum(:) = 0._r8
-
-     end if
-
-     dataptr(:) = fillvalue
-     do jsea=1, nseal_cpl
-        call init_get_isea(isea, jsea)
-        ix = mapsf(isea,1)
-        iy = mapsf(isea,2)
-        if (mapsta(iy,ix) == 1) then
-           if (ww3data(jsea) /= UNDEF) then
-              counter(jsea) = counter(jsea) + 1
-              xaccum(jsea) = xaccum(jsea) + cos( ww3data(jsea) )
-              yaccum(jsea) = yaccum(jsea) + sin( ww3data(jsea) )
-           end if
-           if (sec_next == 0) then
-              if (counter(jsea) /= 0) then
-                 dataptr(jsea)= atan2(yaccum(jsea)/counter(jsea),xaccum(jsea)/counter(jsea))
-              end if
-              counter(jsea) = 0
-              xaccum(jsea) = 0._r8
-              yaccum(jsea) = 0._r8
-           end if
-        else
-           dataptr(jsea) = 0.
-        endif
-     enddo
-   end subroutine accumulateangle
-
 end module wav_import_export
