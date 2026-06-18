@@ -454,6 +454,7 @@ CONTAINS
 #ifdef W3_PIO
     use wav_restart_mod, only : read_restart
     use w3odatmd,        only : runtype, restart_from_binary, use_restartnc, user_restfname
+    use w3odatmd,        only : use_user_restname, initfile
 #endif
     !/
 #ifdef W3_MPI
@@ -983,6 +984,40 @@ CONTAINS
 #ifdef W3_PIO
     if (use_restartnc) then
       call set_user_timestring(time,user_timestring)
+#ifdef W3_CESMCOUPLED
+      ! CESM: netCDF restarts are the default; binary restart/IC files are a
+      ! coexisting, backward-compatible fallback selected by the initfile
+      ! extension. An initial run with no initfile starts from in-core calm
+      ! conditions (read_restart('none')) -- no binary initial-condition file.
+      if (trim(runtype) == 'continue') then
+        fname = trim(user_restfname)//trim(user_timestring)//'.nc'
+        inquire(file=trim(fname), exist=exists)
+        if (.not. exists) then
+          call extcde (60, msg="required restart file " // trim(fname) // " does not exist")
+        end if
+        call read_restart(trim(fname), va=va, mapsta=mapsta, mapst2=mapst2)
+      else if (len_trim(initfile) == 0) then
+        if (trim(runtype) == 'branch') then
+          call extcde (60, msg="branch run requires a non-empty initfile")
+        end if
+        ! initial run with no IC file: start from in-core calm conditions
+        call read_restart('none')
+        flcold = .true.
+      else
+        inquire(file=trim(initfile), exist=exists)
+        if (.not. exists) then
+          call extcde (60, msg="required IC/restart file " // trim(initfile) // " does not exist")
+        end if
+        if (index(initfile, '.nc', back=.true.) == len_trim(initfile) - 2) then
+          ! netCDF IC/restart file
+          call read_restart(trim(initfile), va=va, mapsta=mapsta, mapst2=mapst2)
+        else
+          ! binary IC/restart file (backward-compatible fallback)
+          call w3iors('READ', nds(6), sig(nk), imod, filename=trim(initfile))
+          flcold = rstype <= 1 .or. rstype == 4
+        end if
+      end if
+#else
       if (restart_from_binary) then
         fname = trim(user_restfname)//trim(user_timestring)
       else
@@ -998,14 +1033,14 @@ CONTAINS
       else
         if (runtype == 'continue') then
           call extcde (60, msg="required restart file " // trim(fname) // " does not exist")
-        elseif (restart_from_binary) then 
+        elseif (restart_from_binary) then
           call extcde (60, msg="required restart file " // trim(fname) // " does not exist")
-        else 
+        else
           call read_restart('none')
-         ! mapst2 is module variable defined in read of mod_def; maptst is from 2.b above
-         flcold = .true.
-        endif 
+          flcold = .true.
+        endif
       end if
+#endif
     else
 #endif
 

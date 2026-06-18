@@ -560,7 +560,9 @@ CONTAINS
     use w3odatmd      , only : histwr, rstwr
 #ifdef W3_PIO
     use wav_history_mod , only : write_history
-    USE W3ODATMD,         ONLY : FNMRST
+    use wav_restart_mod , only : write_restart
+    use w3timemd        , only : set_user_timestring
+    USE W3ODATMD,         ONLY : FNMRST, user_restfname
     USE W3GDATMD,         ONLY : MAPST2
 #endif
     use w3odatmd        , only : use_historync, use_restartnc
@@ -693,6 +695,10 @@ CONTAINS
     logical, parameter :: w3_cesmcoupled_flag = .false.
 #endif
     integer :: memunit
+#ifdef W3_PIO
+    character(len=512) :: rstfname           ! netCDF restart filename
+    character(len=16)  :: rst_timestring     ! YYYY-MM-DD-SSSSS
+#endif
     logical :: do_gridded_output
     logical :: do_point_output
     logical :: do_track_output
@@ -2744,8 +2750,17 @@ CONTAINS
                 CALL W3IOTR ( NDS(11), NDS(12), VA, IMOD )
 
               ELSE IF ( do_restart_output ) THEN
-                CALL W3IORS ('HOT', NDS(6), XXX, IMOD, FLOUT(8) )
-                ITEST = RSTYPE
+                if (use_restartnc) then
+#ifdef W3_PIO
+                  ! netCDF (PIO) restart: casename.ww3.r.YYYY-MM-DD-SSSSS.nc
+                  call set_user_timestring(time, rst_timestring)
+                  rstfname = trim(FNMRST)//trim(user_restfname)//trim(rst_timestring)//'.nc'
+                  call write_restart(trim(rstfname), va, mapsta+8*mapst2)
+#endif
+                else
+                  CALL W3IORS ('HOT', NDS(6), XXX, IMOD, FLOUT(8) )
+                  ITEST = RSTYPE
+                end if
 
               ELSE IF ( do_wavefield_separation_output ) THEN
                 IF ( IAPROC .EQ. NAPBPT ) THEN
