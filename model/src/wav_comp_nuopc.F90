@@ -953,8 +953,6 @@ contains
           end if
         end if
       end do
-      deallocate(mask_global)
-      deallocate(mask_local)
 
       ! create a global index that includes both sea and land - but put land at the end
       nlnd = (my_lnd_end - my_lnd_start + 1)
@@ -989,10 +987,6 @@ contains
         if (ChkErr(rc,__LINE__,u_FILE_u)) return
       end if
     end if
-
-    deallocate(gindex)
-    deallocate(gindex_sea)
-    deallocate(gindex_lnd)
 
     if (.not. unstr_mesh) then
       ! obtain the mesh mask and find the minimum value across all PEs
