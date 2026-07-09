@@ -11,12 +11,13 @@ module wav_wrapper_mod
 
   use wav_kind_mod  , only : r8 => shr_kind_r8, r4 => shr_kind_r4, i4 => shr_kind_i4
   use wav_kind_mod  , only : CL => shr_kind_cl, CS => shr_kind_cs
+  use mpi_f08       , only : MPI_Wtime
 
   implicit none
 
   real(r8) :: wtime = 0.0
 
-#ifdef CESMCOUPLED
+#ifdef W3_CESMCOUPLED
 contains
   ! Define stub routines that do nothing - they are just here to avoid
   ! having cppdefs in the main program
@@ -33,7 +34,7 @@ contains
   subroutine ufs_file_setLogUnit(filename,nunit,runtimelog)
     character(len=*),  intent(in)  :: filename
     logical,           intent(in)  :: runtimelog
-    integer,           intent(out) :: nunit
+    integer,           intent(out) :: nunit 
   end subroutine ufs_file_setLogUnit
   subroutine ufs_logfhour(msg,hour)
     character(len=*),  intent(in)  :: msg
@@ -49,7 +50,6 @@ contains
     !> @date 01-08-2024
 
     real(r8),    intent(inout) :: timevalue
-    real(r8)                   :: MPI_Wtime
     timevalue = MPI_Wtime()
   end subroutine ufs_settimer
 
@@ -64,12 +64,13 @@ contains
     !!
     !> Denise.Worthen@noaa.gov
     !> @date 01-08-2024
+
     integer,          intent(in)    :: nunit
     integer(i4),      intent(in)    :: times(2),tod
     character(len=*), intent(in)    :: string
     logical,          intent(in)    :: runtimelog
     real(r8),         intent(in)    :: wtime0
-    real(r8)                        :: MPI_Wtime, timevalue
+    real(r8)                        :: timevalue
     if (.not. runtimelog) return
     if (wtime0 > 0.) then
       timevalue = MPI_Wtime()-wtime0

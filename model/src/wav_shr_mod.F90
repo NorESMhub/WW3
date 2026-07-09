@@ -26,6 +26,7 @@ module wav_shr_mod
   use ESMF            , only : ESMF_Time, ESMF_TimeGet, ESMF_TimeSet
   use ESMF            , only : ESMF_TimeInterval, ESMF_TimeIntervalSet, ESMF_TimeIntervalGet
   use ESMF            , only : ESMF_VM, ESMF_VMGet, ESMF_VMBroadcast, ESMF_VMGetCurrent
+  use ESMF            , only : ESMF_ClockGetAlarm, ESMF_AlarmGet, MOD
   use NUOPC           , only : NUOPC_CompAttributeGet
   use NUOPC_Model     , only : NUOPC_ModelGet
   use wav_kind_mod    , only : r8 => shr_kind_r8, i8 => shr_kind_i8, cl=>shr_kind_cl, cs=>shr_kind_cs
@@ -74,9 +75,7 @@ module wav_shr_mod
   ! Only used by ufs
   logical            , public :: merge_import  = .false.  !< @public logical to specify whether import fields will
                                                           !! be merged with a field provided from a file
-  logical            , public :: multigrid = .false.      !< @public logical to control whether wave model is run
-                                                          !! as multigrid
-
+  integer            , public :: dtime_drv                !! used for nstep(s) alarm option setting
   interface ymd2date
     module procedure ymd2date_int
     module procedure ymd2date_long
@@ -103,6 +102,7 @@ module wav_shr_mod
        optMonthly        = "monthly"   , &             !< alarm option monthly
        optYearly         = "yearly"    , &             !< alarm option yearly
        optDate           = "date"      , &             !< alarm option date
+       optEnd            = "end"       , &             !< alarm option end
        optIfdays0        = "ifdays0"                   !< alarm option for number of days 0
 
   ! Module data
@@ -363,7 +363,7 @@ contains
     integer,          intent(inout)  :: rc
 
     ! local variables
-    integer           :: mytask, ierr, len
+    integer           :: mytask
     type(ESMF_VM)     :: vm
     type(ESMF_Field)  :: field
     real(r8), pointer :: farrayptr(:,:)
@@ -483,7 +483,7 @@ contains
     integer          , intent(out)   :: rc
 
     ! local variables
-    integer                             :: i,j,n
+    integer                             :: n
     type(ESMF_Field)                    :: lfield
     integer                             :: fieldCount
     integer                             :: lrank
@@ -664,7 +664,7 @@ contains
     integer         , intent(out) :: rc
 
     ! local variables
-    integer                         :: i,j,n
+    integer                         :: n
     type(ESMf_Field)                :: lfield
     integer                         :: fieldCount, lrank
     character(ESMF_MAXSTR) ,pointer :: lfieldnamelist(:)
@@ -885,7 +885,7 @@ contains
     integer                     , intent(inout) :: rc        ! Return code
 
     ! local variables
-    type(ESMF_Calendar)     :: cal                ! calendar
+    type(ESMF_Calendar)     :: cal              ! calendar
     integer                 :: lymd             ! local ymd
     integer                 :: ltod             ! local tod
     integer                 :: cyy,cmm,cdd,csec ! time info
@@ -894,7 +894,7 @@ contains
     type(ESMF_Time)         :: CurrTime         ! Current Time
     type(ESMF_Time)         :: NextAlarm        ! Next restart alarm time
     type(ESMF_TimeInterval) :: AlarmInterval    ! Alarm interval
-    integer                 :: sec
+    type(ESMF_TimeInterval) :: TimeStepInterval ! Timestep interval
 
     character(len=*), parameter :: subname = ' (wav_shr_mod:set_alarmInit) '
     !-------------------------------------------------------------------------------
@@ -940,6 +940,14 @@ contains
       call ESMF_TimeSet( NextAlarm, yy=9999, mm=12, dd=1, s=0, calendar=cal, rc=rc )
       if (chkerr(rc,__LINE__,u_FILE_u)) return
       update_nextalarm  = .false.
+
+    case (optEnd)
+       call ESMF_TimeIntervalSet(AlarmInterval, yy=9999, rc=rc)
+       if (chkerr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_ClockGetAlarm(clock, alarmname="alarm_stop", alarm=alarm, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       call ESMF_AlarmGet(alarm, ringTime=NextAlarm, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     case (optDate)
       if (.not. present(opt_ymd)) then
@@ -991,9 +999,17 @@ contains
              ESMF_LOGMSG_INFO, rc=rc)
         rc = ESMF_FAILURE
       end if
-      call ESMF_ClockGet(clock, TimeStep=AlarmInterval, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_ClockGet(clock, TimeStep=TimestepInterval, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_TimeIntervalSet(AlarmInterval, s=dtime_drv, rc=rc )
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
       AlarmInterval = AlarmInterval * opt_n
+      ! timestepinterval*0 is 0 of kind ESMF_TimeStepInterval
+      if (mod(AlarmInterval, TimestepInterval) /= (timestepinterval*0)) then
+         call ESMF_LogWrite(subname//'illegal Alarm setting for '//trim(alarmname), ESMF_LOGMSG_ERROR)
+         rc = ESMF_FAILURE
+         return
+      endif
       update_nextalarm  = .true.
 
     case (optNStep)
@@ -1007,9 +1023,17 @@ contains
              ESMF_LOGMSG_INFO, rc=rc)
         rc = ESMF_FAILURE
       end if
-      call ESMF_ClockGet(clock, TimeStep=AlarmInterval, rc=rc)
-      if (chkerr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_ClockGet(clock, TimeStep=TimestepInterval, rc=rc)
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
+      call ESMF_TimeIntervalSet(AlarmInterval, s=dtime_drv, rc=rc )
+      if (ChkErr(rc,__LINE__,u_FILE_u)) return
       AlarmInterval = AlarmInterval * opt_n
+      ! timestepinterval*0 is 0 of kind ESMF_TimeStepInterval
+      if (mod(AlarmInterval, TimestepInterval) /= (timestepinterval*0)) then
+         call ESMF_LogWrite(subname//'illegal Alarm setting for '//trim(alarmname), ESMF_LOGMSG_ERROR)
+         rc = ESMF_FAILURE
+         return
+      endif
       update_nextalarm  = .true.
 
     case (optNSeconds)
@@ -1273,8 +1297,7 @@ contains
 
     ! local variables
     integer :: year, mon, day ! year, month, day as integers
-    integer :: tdate          ! temporary date
-    integer :: date           ! coded-date (yyyymmdd)
+    integer :: tdate          ! temporary date (yyyymmdd)
     integer, parameter          :: SecPerDay = 86400 ! Seconds per day
     character(len=*), parameter :: subname = ' (wav_shr_mod:timeInit) '
     !-------------------------------------------------------------------------------
@@ -1287,9 +1310,9 @@ contains
       rc = ESMF_FAILURE
     end if
 
-    tdate = abs(date)
+    tdate = abs(ymd)
     year = int(tdate/10000)
-    if (date < 0) year = -year
+    if (ymd < 0) year = -year
     mon = int( mod(tdate,10000)/  100)
     day = mod(tdate,  100)
 

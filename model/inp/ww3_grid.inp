@@ -73,6 +73,12 @@ $                                    effective wind speed (!/STAB2).
 $   WAM4 and variants  : Namelist SIN3
 $                           ZWND    : Height of wind (m).
 $                           ALPHA0  : minimum value of Charnock coefficient
+$                           CAPCHA  : enable functional form for Cd (1=enabled),
+$                                       only valid when SINTABLE=0.
+$                             UCAP  : Wind speed threshold for cap (CAPCHA=1)
+$                        SIGMAUCAP  : Width of functional form (CAPCHA=1)
+$                             CHA0  : Initial Charnock coefficient (CAPCHA=1)
+$                           CHAMIN  : Minimum Charnock value (CAPCHA=1)
 $                           Z0MAX   : maximum value of air-side roughness z0
 $                           BETAMAX : maximum value of wind-wave coupling
 $                           SINTHP  : power of cosine in wind input
@@ -352,10 +358,11 @@ $                           JGS_LIMITER  : TRUE: Use total (quasi-steady: limits
 $                                          FALSE: default
 $                           JGS_LIMITER_FUNC  : 1 - old limiter (default)
 $                                               2 - alternatnive limiter
-$                           SETUP_APPLY_WLV  : Compute wave setup (TRUE/FALSE, default TRUE)
+$                           JGS_TRUNK_DIGITS  : [Only with switch TRNK] Number of digits of precision to truncate solution to at the end of iterative solver. 
+$                                               Can be used to force bit-for-bit reproducibility.
+$                           SETUP_APPLY_WLV  : Compute wave setup (TRUE/FALSE, default TRUE) 
 $                           SOLVERTHR_SETUP  : Solver threshold for setup computations (default 1E-6)
 $                           CRIT_DEP_SETUP  : Critical depth for setup computations (default 0.1)
-
 $
 $ SMC grid propagation    : Namelist PSMC and default values
 $                           CFLSM  : Maximum CFL no. for propagation, 0.7
@@ -440,6 +447,8 @@ $                           USSP : First index (default is 1, should always be 1
 $                           IUSSP : Last index (must be <= than NK and should be
 $                                               between 3 and ~10 with the tradeoff
 $                                               between accuracy and resources)
+$                           STK_TAIL : Flag to turn on tail contribution.
+$                                       (to be added to the last band.)
 $                           STK_WN : List of wavenumbers (size of IUSSP)
 $                           e.g.: USSP = 1, IUSSP=3, STK_WN = 0.04, 0.11, 0.33
 $                                 provides 3 partitions of both x & y component,
@@ -522,6 +531,10 @@ $                           P2SF   : ......
 $                           CALTYPE: Calendar type. The only accepted
 $                                    values are 'standard' (default),
 $                                    '365_day', or '360_day'.
+$                           IC_NUMERICS: Logical variable (T/F). Set to T to
+$                                      allow the user to place the 'sea ice'
+$                                      source terms with other source terms
+$                                      Default is F (PR_1294)
 $
 $ Diagnostic Sea-state Dependent Stress- - - - - - - - - - - - - - - - -
 $   Reichl et al. 2014  : Namelist FLD1

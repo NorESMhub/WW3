@@ -240,6 +240,7 @@ MODULE W3GDATMD
   !                               for individual grid points.
   !      IICEDISP   Log.  Public   Flag for use of the ice covered dispertion relation.
   !      IICESMOOTH Log.  Public   Flag to smooth the ice covered dispertion relation in broken ice.
+  !      IC_NUMERICS Log. Public  Turn on/off IC numerics fix
   !
   !
   !      GNAME     C*30  Public   Grid name.
@@ -669,7 +670,7 @@ MODULE W3GDATMD
          DTMIN, DMIN, CTMAX, FICE0, FICEN, FICEL,   &
          PFMOVE, STEXU, STEYU, STEDU, IICEHMIN,     &
          IICEHINIT, ICESCALES(4), IICEHFAC, IICEHDISP, &
-         IICEDDISP, IICEFDISP, BTBETA, AAIRCMIN, AAIRGB
+         IICEDDISP, IICEFDISP, BTBETA, AAIRCMIN, AAIRGB, FETCH
 
     REAL(8)          :: GRIDSHIFT ! see notes in WMGHGH
 
@@ -700,6 +701,7 @@ MODULE W3GDATMD
 
     LOGICAL          :: GINIT, FLDRY, FLCX, FLCY, FLCTH, FLCK, FLSOU, IICEDISP,&
          IICESMOOTH
+    LOGICAL          :: IC_NUMERICS
     LOGICAL          :: FLAGLL
     LOGICAL          :: CMPRTRCK
     LOGICAL, POINTER :: FLAGST(:)
@@ -711,6 +713,7 @@ MODULE W3GDATMD
     INTEGER, POINTER :: REFLD(:,:)  ! reflection direction
 #endif
     INTEGER          :: E3DF(3,5), P2MSF(3), US3DF(3), USSPF(2) ! freq. indices for 3D output
+    LOGICAL          :: USSP_TAIL ! Flag to turn on tail contrib. for partitioned stokes drift
     REAL             :: USSP_WN(25) !Max set to 25 decay scales.
     !
     TYPE(T_GSU) :: GSU ! Grid search utility object
@@ -910,7 +913,8 @@ MODULE W3GDATMD
          SSDSP, WWNMEANP, SSTXFTF, SSTXFTWN,  &
          FFXPM, FFXFM, FFXFA,   &
          SSDSBRF1, SSDSBRF2, SSDSBINT,SSDSBCK,&
-         SSDSHCK, SSDSABK, SSDSPBK, SSINBR
+         SSDSHCK, SSDSABK, SSDSPBK, SSINBR,   &
+         CAPCHNK(1:10)
     REAL                  :: ZZWND
     REAL                  :: SSDSCOS, SSDSDTH, SSDSBT, SSDSBM(0:4)
 #endif
@@ -1055,6 +1059,7 @@ MODULE W3GDATMD
     LOGICAL :: B_JGS_LIMITER
     LOGICAL :: B_JGS_USE_JACOBI
     LOGICAL :: B_JGS_BLOCK_GAUSS_SEIDEL
+    INTEGER :: B_JGS_TRUNK_DIGITS
     INTEGER :: B_JGS_MAXITER
     INTEGER :: B_JGS_LIMITER_FUNC
     REAL*8  :: B_JGS_PMIN
@@ -1098,6 +1103,7 @@ MODULE W3GDATMD
   INTEGER, POINTER :: ICLOSE
   INTEGER, POINTER        :: NX, NY, NSEA, NSEAL, TRFLAG
   INTEGER, POINTER        :: E3DF(:,:), P2MSF(:), US3DF(:), USSPF(:)
+  LOGICAL, POINTER        :: USSP_TAIL
   REAL,    POINTER        :: USSP_WN(:)
 #ifdef W3_REF1
   REAL,    POINTER        :: REFLC(:,:)
@@ -1191,7 +1197,7 @@ MODULE W3GDATMD
        FICEL, PFMOVE, STEXU, STEYU, STEDU,   &
        IICEHMIN, IICEHINIT, ICESCALES(:),    &
        IICEHFAC, IICEHDISP, IICEDDISP, IICEFDISP, &
-       BTBETA, AAIRCMIN, AAIRGB
+       BTBETA, AAIRCMIN, AAIRGB, FETCH
   REAL(8),POINTER         :: GRIDSHIFT ! see notes in WMGHGH
 #ifdef W3_RTD
   REAL, POINTER         :: PoLat, PoLon
@@ -1222,6 +1228,7 @@ MODULE W3GDATMD
 
   LOGICAL, POINTER :: GINIT, FLDRY, FLCX, FLCY, FLCTH, FLCK, FLSOU, IICEDISP,&
        IICESMOOTH
+  LOGICAL, POINTER :: IC_NUMERICS
   LOGICAL, POINTER :: FLAGLL
   LOGICAL, POINTER :: CMPRTRCK
   LOGICAL, POINTER :: FLAGST(:)
@@ -1334,7 +1341,8 @@ MODULE W3GDATMD
        SSDSPBK, SSINBR,SSINTHP,TTAUWSHELTER,&
        SINTAILPAR(:), SSWELLF(:), SSDSC(:), SSDSBR,        &
        SSDSP, WWNMEANP, SSTXFTF, SSTXFTWN,  &
-       SSDSBT, SSDSCOS, SSDSDTH, SSDSBM(:)
+       SSDSBT, SSDSCOS, SSDSDTH, SSDSBM(:), &
+       CAPCHNK(:) 
 #endif
 #ifdef W3_ST6
   REAL, POINTER           :: SIN6A0, SDS6A1, SDS6A2, SWL6B1, &
@@ -1420,6 +1428,7 @@ MODULE W3GDATMD
   LOGICAL, POINTER :: B_JGS_BLOCK_GAUSS_SEIDEL
   INTEGER, POINTER :: B_JGS_MAXITER
   INTEGER, POINTER :: B_JGS_LIMITER_FUNC
+  INTEGER, POINTER :: B_JGS_TRUNK_DIGITS
   REAL(8), POINTER :: B_JGS_PMIN
   REAL(8), POINTER :: B_JGS_DIFF_THR
   REAL(8), POINTER :: B_JGS_NORM_THR
@@ -2100,7 +2109,7 @@ CONTAINS
          MPARS(IMOD)%SRCPS%CUMULW(MSPEC,MSPEC),        &
          STAT=ISTAT                                   )
     CHECK_ALLOC_STATUS ( ISTAT )
-    MPARS(IMOD)%SRCPS%SATINDICES(:,:)=0.
+    MPARS(IMOD)%SRCPS%SATINDICES(:,:)=1.
     MPARS(IMOD)%SRCPS%SATWEIGHTS(:,:)=0.
     MPARS(IMOD)%SRCPS%CUMULW(:,:)=0.
 #endif
@@ -2310,6 +2319,7 @@ CONTAINS
     P2MSF  => GRIDS(IMOD)%P2MSF
     US3DF  => GRIDS(IMOD)%US3DF
     USSPF  => GRIDS(IMOD)%USSPF
+    USSP_TAIL => GRIDS(IMOD)%USSP_TAIL
     USSP_WN => GRIDS(IMOD)%USSP_WN
     FFACBERG => GRIDS(IMOD)%FFACBERG
     !
@@ -2382,6 +2392,7 @@ CONTAINS
     STEDU  => GRIDS(IMOD)%STEDU
     BTBETA => GRIDS(IMOD)%BTBETA
     AAIRGB => GRIDS(IMOD)%AAIRGB
+    FETCH  => GRIDS(IMOD)%FETCH
     AAIRCMIN => GRIDS(IMOD)%AAIRCMIN
     !
     GINIT  => GRIDS(IMOD)%GINIT
@@ -2394,6 +2405,7 @@ CONTAINS
     FLSOU  => GRIDS(IMOD)%FLSOU
     IICEDISP => GRIDS(IMOD)%IICEDISP
     IICESMOOTH => GRIDS(IMOD)%IICESMOOTH
+    IC_NUMERICS => GRIDS(IMOD)%IC_NUMERICS
     !
     GNAME  => GRIDS(IMOD)%GNAME
     FILEXT => GRIDS(IMOD)%FILEXT
@@ -2679,6 +2691,7 @@ CONTAINS
     ZZALP    => MPARS(IMOD)%SRCPS%ZZALP
     TTAUWSHELTER  => MPARS(IMOD)%SRCPS%TTAUWSHELTER
     SINTAILPAR  => MPARS(IMOD)%SRCPS%SINTAILPAR
+    CAPCHNK  => MPARS(IMOD)%SRCPS%CAPCHNK
     SSWELLFPAR  => MPARS(IMOD)%SRCPS%SSWELLFPAR
     SSWELLF  => MPARS(IMOD)%SRCPS%SSWELLF
     SSDSC    => MPARS(IMOD)%SRCPS%SSDSC
@@ -2867,6 +2880,7 @@ CONTAINS
     B_JGS_NORM_THR => MPARS(IMOD)%SCHMS%B_JGS_NORM_THR
     B_JGS_NLEVEL => MPARS(IMOD)%SCHMS%B_JGS_NLEVEL
     B_JGS_SOURCE_NONLINEAR => MPARS(IMOD)%SCHMS%B_JGS_SOURCE_NONLINEAR
+    B_JGS_TRUNK_DIGITS => MPARS(IMOD)%SCHMS%B_JGS_TRUNK_DIGITS
     RETURN
     !
     ! Formats
@@ -2970,7 +2984,10 @@ CONTAINS
     LOGICAL, PARAMETER :: SPHERE = .FALSE.
     INTEGER :: PRANGE(2), QRANGE(2)
     INTEGER :: LBI(2), UBI(2), LBO(2), UBO(2), ISTAT
+#if defined(TEST_W3GDATMD) || defined(TEST_W3GDATMD_W3GNTX)
     REAL   , ALLOCATABLE :: COSA(:,:)
+#endif
+
 #ifdef W3_S
     INTEGER, SAVE      :: IENT = 0
     CALL STRACE (IENT, 'W3GNTX')
@@ -3189,7 +3206,6 @@ CONTAINS
     !/ Parameter list
     !/
     INTEGER, INTENT(IN)     :: IMOD, MTRI, MX, COUNTOTA, NNZ, NDSE, NDST
-    INTEGER                 :: IAPROC = 1
     !/
     !/ ------------------------------------------------------------------- /
     !/ Local parameters
@@ -3361,15 +3377,19 @@ CONTAINS
     !/
     !/ ------------------------------------------------------------------- /
     !/
-    INTEGER                 :: ISEA, IX, IY, IXY, IXN, IXP, IYN, IYP
-    INTEGER                 :: J, K, NEIGH1(0:7)
-    INTEGER                 :: ILEV, NLEV
 #ifdef W3_S
     INTEGER, SAVE           :: IENT = 0
 #endif
+#ifdef W3_REF1
+    REAL                    :: COSAVG, SINAVG, THAVG, CLAT
+    INTEGER                 :: J, K
+#endif
+#if defined(W3_REF1) || defined(W3_REFT)
+    INTEGER                 :: IX, IY
+    INTEGER                 :: NEIGH1(0:7)
+    REAL                    :: ANGLES(0:7)
+#endif
 
-    REAL                    :: TRIX(NY*NX), TRIY(NY*NX), DX, DY,    &
-         COSAVG, SINAVG, THAVG, ANGLES(0:7), CLAT
     !/
     !/ ------------------------------------------------------------------- /
     !/
