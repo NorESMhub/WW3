@@ -531,6 +531,15 @@ contains
       ! type 7 (coupling) output dates are always processed for the cap
       notype = 7
       ! history frequency is determined by history_n and history_option
+      ! odat is WW3's output-timing array
+      ! slots 1–2: start date & time (yyyymmdd, hhmmss)
+      ! slot 3: stride — the output interval (in seconds)
+      ! slots 4–5: stop date & time
+      ! odat(3) is the stride (output interval) for the gridded output
+      ! — i.e. how often gridded history fields are written.
+      ! Note that this is set in the following call above
+      ! read(nml_output_date%field%stride,   *) odat(3)
+      ! odat(3) will be zero (no namelist is read in for nml_output_date)
       if (use_historync .and. odat(3) .eq. 0) then
         fldout = nml_output_type%field%list
         call w3flgrdflag ( ndso, ndso, ndse, fldout, flgd, flgrd, iaproc, napout, ierr )
