@@ -1384,6 +1384,8 @@ contains
 
     call ESMF_ClockGetAlarmList(mclock, alarmlistflag=ESMF_ALARMLIST_ALL, alarmCount=alarmCount, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    dtime_drv = get_minimum_timestep(gcomp, rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     if (alarmCount == 0) then
 

@@ -647,9 +647,6 @@ CONTAINS
          SKIP_O, FLAG_O, FLDDIR, READBC,      &
          FLOUTG = .false., FLPFLD,            &
          FLPART, LOCAL, FLOUTG2 = .false.
-#ifdef W3_DEBUGRUN
-    LOGICAL                 :: FLAG0 = .FALSE.
-#endif
 #ifdef W3_MPI
     LOGICAL                 :: FLGMPI(0:8)
 #endif
